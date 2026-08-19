@@ -1225,31 +1225,8 @@
 
 <script>
 /* ============ 数据层 ============ */
-let jobSeq = 6;
-const jobs = [
-  {id:1, company:'SHEIN', role:'HR数字化PM', salary:'24-30K', source:'内推', city:'上海', industry:'跨境电商',
-   exp:'3-5年', edu:'本科', keywords:['HRIS','人力资源数字化'], stage:'面试中', applyDate:'2026-05-20',
-   link:'https://example.com/shein', duties:['参与总部HR系统需求调研与规划','交付人力数据分析看板','探索 AI 在 HR 场景的产品化'],
-   reqs:['熟悉 HRIS / HCM 系统','具备数据分析与产品思维','有跨部门项目推动经验']},
-  {id:2, company:'字节跳动', role:'People Analytics', salary:'30-40K', source:'猎头', city:'北京', industry:'互联网',
-   exp:'5-10年', edu:'硕士', keywords:['数据分析','Quick BI'], stage:'面试中', applyDate:'2026-05-28',
-   link:'https://example.com/bytedance', duties:['搭建人才数据指标体系','支持组织诊断与决策'],
-   reqs:['精通 SQL/BI','具备 HR 数据分析经验']},
-  {id:3, company:'名创优品', role:'HRBP', salary:'15-20K', source:'BOSS直聘', city:'广州', industry:'零售',
-   exp:'3-5年', edu:'本科', keywords:['HRBP','跨文化'], stage:'Offer', applyDate:'2026-04-30',
-   link:'https://example.com/miniso', duties:['负责区域 HRBP 工作','支持零售门店人才管理'],
-   reqs:['3年以上 HRBP 经验','良好的跨文化沟通']},
-  {id:4, company:'Anker', role:'薪酬绩效专员', salary:'18-24K', source:'LinkedIn', city:'深圳', industry:'跨境电商',
-   exp:'1-3年', edu:'本科', keywords:['薪酬'], stage:'拒信/放弃', applyDate:'2026-04-12',
-   link:'https://example.com/anker', duties:['薪酬核算与方案支持'], reqs:['熟悉薪酬体系']},
-  {id:5, company:'华为', role:'HRIS 实施顾问', salary:'22-28K', source:'BOSS直聘', city:'上海', industry:'制造业',
-   exp:'3-5年', edu:'本科', keywords:['HRIS','SAP'], stage:'已投递', applyDate:'2026-07-28',
-   link:'https://example.com/huawei', duties:['参与 HRIS 系统实施','梳理 HR 业务流程'], reqs:['熟悉 SAP/SuccessFactors','有制造业 HR 系统经验']},
-  {id:6, company:'腾讯', role:'HR数据分析师', salary:'20-28K', source:'网申', city:'深圳', industry:'互联网',
-   exp:'3-5年', edu:'本科', keywords:['数据分析','SQL','人才盘点'], stage:'笔试/测评', applyDate:'2026-06-15',
-   link:'https://example.com/tencent', duties:['支持HR数据分析与报表开发','参与人才盘点数据建模'],
-   reqs:['熟练使用 SQL/Excel','具备数据敏感度','有人力资源相关经验']}
-];
+let jobSeq = 0;
+const jobs = [];
 
 /* ============ 工具 ============ */
 function $(id){return document.getElementById(id);}
@@ -2836,24 +2813,11 @@ function loadAbilityTagsLS(){
 function saveAbilityTagsLS(){ try{ localStorage.setItem('ajhc_tags', JSON.stringify(abilityTags)); }catch(e){} }
 loadAbilityTagsLS();
 
-let brainQ=[
- {id:1, q:'讲一个你推动跨部门项目的例子', weak:['沟通表达不清晰','主动性不足'],
-  ans:'STAR：在集团牵头 HR 数字化项目，联动 IT/业务/财务三方，以双周对齐会推动系统上线，提前 2 周交付。', done:true},
- {id:2, q:'如何用数据说服业务方接受方案', weak:['缺乏量化成果'], ans:'', done:false},
- {id:3, q:'你最自豪的 HR 项目是什么', weak:['个人贡献不突出','主动性不足'],
-  ans:'从 0 搭建 200+ BI 报表体系，覆盖招聘/薪酬/离职预警，被采纳为月度经营例会固定看板。', done:true},
- {id:4, q:'遇到业务方不配合时如何处理', weak:['冲突处理不佳','跨部门协作经验弱'], ans:'', done:false},
- {id:5, q:'请说明一次你用 Quick BI 解决分析需求的经历', weak:['工具熟练度不够','业务理解不透彻'],
-  ans:'为招聘团队搭建渠道转化漏斗看板，定位内推转化最高，建议资源倾斜。', done:true},
- {id:6, q:'远程协作下如何保证跨文化沟通效率', weak:['跨部门协作经验弱','沟通表达不清晰'], ans:'', done:false},
-];
-let brainSeq=6;
+let brainQ=[];
+let brainSeq=0;
 
-let starStories=[
- {id:1, title:'跨部门 HR 系统上线', story:'背景：集团 HR 系统老旧；行动：牵头需求调研+供应商选型+试点推广；结果：6 个月上线，录入效率提升 40%。'},
- {id:2, title:'200+ BI 报表体系建设', story:'从 0 搭建数据看板体系，统一指标口径，赋能 5 个业务部门自助分析。'},
-];
-let starSeq=2;
+let starStories=[];
+let starSeq=0;
 
 /* ============ 面试锦囊 Cheat Sheet ============ */
 // 分类下拉已移除，所有锦囊条目统一作为「关键数据」处理
@@ -3948,10 +3912,6 @@ function scriptCheat(job, resume){
       if(!seen.has(t)){ seen.add(t); out.push({cat:'关键数据', text:t}); }
     });
   }
-  push('其他', '1分钟介绍');
-  push('其他', '少讲工具多讲价值');
-  push('其他', '问团队目标');
-  push('其他', '薪资别抢先');
   return out;
 }
 function applyCheatGen(items, job){
@@ -4831,20 +4791,12 @@ const SKILLS_POOL=['HRIS','HCM','HR系统','人力资源数字化','薪酬','绩
 const INDUSTRIES_POOL=['跨境电商','零售','制造','互联网','金融','医疗','教育','物流','汽车','快消','地产','游戏'];
 const ROLES_POOL=['HR','人力资源','HRBP','HR数字化','数据分析','数字化','BP','PM','项目经理','招聘','薪酬','绩效'];
 /* 基础档案（全局唯一）：姓名 / 入行年份（自动算年限）/ 学历 / 专业 / 行业 */
-let profile={name:'AAA', careerStartYear:2000, education:'本科', major:'人力资源管理', industries:['跨境电商']};
+let profile={name:'', careerStartYear:'', education:'不限', major:'', industries:[]};
 /* 经历版本（多份）：技能 / 目标岗位（各版本可不同）+ 工作经验 / 项目经历 / 亮点 / 概述 / 原始文本 */
 let resumes=[], resumeSeq=0, defaultResumeId=0, editingId=null, resumeLoaded=false;
 function seedResumes(){
+  // 生产环境：不预置示例简历，首次使用由用户自行添加
   if(resumes.length) return;
-  resumes.push({id:++resumeSeq, name:'主简历',
-    skills:['HRIS','HCM','人力资源数字化','项目管理'],
-    targetRoles:['HR 数字化'],
-    workExp:'2000–至今 某跨境电商集团 HRIS 负责人，主导人力资源数字化与共享服务中心（SSC）建设。',
-    projectExp:'HRIS 系统上线项目：整合薪酬/绩效/招聘模块，流程效率提升 40%；搭建 HR BI 看板 20+。',
-    highlights:['主导 HRIS 上线，效率提升 40%','搭建 HR BI 看板 20+','跨国团队 HR 数字化落地'],
-    summary:'26 年人力资源数字化经验，擅长 HRIS 与数据分析。',
-    raw:''});
-  defaultResumeId=resumes[0].id;
 }
 function getResume(id){
   const r=resumes.find(x=>x.id==id); if(!r) return null;
