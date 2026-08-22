@@ -248,26 +248,38 @@
   .kcard { position:relative; }
   .kcard.parked { opacity:.72; border-left-color:#c7d2fe; background:#f8faff; }
   .park-badge { position:absolute; top:8px; right:8px; background:#eef2ff; color:#4f46e5; border:1px solid #c7d2fe; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:600; }
-  .park-dock { position:fixed; right:22px; bottom:22px; z-index:60; display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
-  .park-fab { display:flex; align-items:center; gap:6px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:999px; padding:11px 16px; font-size:14px; font-weight:600; cursor:pointer; box-shadow:0 8px 22px rgba(99,102,241,.4); }
-  .park-fab:hover { transform:translateY(-1px); }
-  .park-fab-ico { font-size:16px; }
-  .park-fab-count { background:#fff; color:#6366f1; border-radius:999px; min-width:20px; height:20px; padding:0 6px; display:inline-grid; place-items:center; font-size:12px; font-weight:700; }
-  .park-panel { width:340px; max-width:calc(100vw - 44px); background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,.18); overflow:hidden; }
-  .park-panel-hd { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; font-weight:700; color:#312e81; background:#eef2ff; border-bottom:1px solid var(--line); }
-  .park-close { background:none; border:none; font-size:16px; cursor:pointer; color:#6b7280; line-height:1; }
-  .park-panel-body { padding:10px 12px; max-height:46vh; overflow:auto; }
-  .park-sec { margin-bottom:12px; }
-  .park-sec:last-child { margin-bottom:0; }
-  .park-sec-hd { font-size:13px; font-weight:700; color:#374151; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+  /* 卡片删除按钮：默认淡显，悬停/聚焦时高亮；暂停卡片的徽章右移避让 */
+  .kcard-del { position:absolute; top:6px; right:6px; width:24px; height:24px; border:none; border-radius:7px;
+               background:rgba(255,255,255,.92); color:#dc2626; font-size:13px; line-height:1; cursor:pointer;
+               display:grid; place-items:center; opacity:.5; transition:.15s; box-shadow:0 1px 4px rgba(0,0,0,.14); z-index:3; }
+  .kcard:hover .kcard-del, .kcard-del:focus { opacity:1; }
+  .kcard-del:hover { background:#fee2e2; }
+  .kcard.parked .park-badge { right:36px; }
+  .park-dock { position:fixed; right:22px; bottom:22px; z-index:60; display:flex; flex-direction:column; align-items:flex-end; gap:10px; pointer-events:none; }
+  .park-dock > * { pointer-events:auto; }
+  .park-zone { display:flex; align-items:center; gap:6px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:2px dashed transparent; border-radius:999px; padding:11px 16px; font-size:14px; font-weight:600; cursor:pointer; box-shadow:0 8px 22px rgba(99,102,241,.4); transition:transform .1s, box-shadow .1s; }
+  .park-zone:hover { transform:translateY(-1px); }
+  .park-zone.dragover { border-color:#fff; box-shadow:0 0 0 4px rgba(99,102,241,.25), 0 12px 28px rgba(99,102,241,.45); transform:scale(1.03); }
+  .park-zone-ico { font-size:16px; }
+  .park-zone-count { background:#fff; color:#6366f1; border-radius:999px; min-width:20px; height:20px; padding:0 6px; display:inline-grid; place-items:center; font-size:12px; font-weight:700; }
+  .detail-del-fab { position:fixed; right:22px; bottom:22px; z-index:60; display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; border:none; border-radius:999px; padding:11px 16px; font-size:14px; font-weight:600; cursor:pointer; box-shadow:0 8px 22px rgba(220,38,38,.4); }
+  .detail-del-fab:hover { transform:translateY(-1px); }
+  .detail-del-fab svg { width:14px; height:14px; fill:currentColor; }
+  /* 手机端抬高删除 FAB，避开 60px 底部导航 + 安全区，确保不遮挡菜单切换 */
+  @media (max-width:600px){ .detail-del-fab{ bottom:calc(60px + env(safe-area-inset-bottom) + 16px); } .park-dock{ bottom:calc(60px + env(safe-area-inset-bottom) + 16px); } }
+  .park-list { width:280px; max-width:calc(100vw - 44px); height:320px; overflow:auto; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,.18); padding:10px 12px; }
+  .park-list.dragover { background:#eef2ff; }
+  .park-list-hd { font-size:13px; font-weight:700; color:#374151; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
   .park-num { background:#eef2ff; color:#4f46e5; border-radius:999px; padding:1px 8px; font-size:12px; font-weight:700; }
-  .park-item { display:flex; align-items:center; gap:10px; justify-content:space-between; padding:8px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; background:#fafafa; }
+  .park-item { display:flex; align-items:center; gap:10px; justify-content:space-between; padding:8px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; background:#fafafa; cursor:grab; }
   .park-item:last-child { margin-bottom:0; }
+  .park-item:active { cursor:grabbing; }
+  .park-item.dragging { opacity:.6; }
   .park-item-main { min-width:0; }
   .pi-name { font-weight:600; font-size:13px; color:#111827; display:flex; align-items:center; gap:6px; }
   .pi-sub { font-size:12px; color:#6b7280; margin-top:2px; }
   .park-stage { font-size:11px; background:#fee2e2; color:#b91c1c; border-radius:6px; padding:1px 6px; font-weight:600; }
-  .park-tip { font-size:12px; color:#6b7280; line-height:1.6; padding:8px 12px 12px; border-top:1px dashed var(--line); margin-top:4px; }
+  .park-empty { font-size:12px; color:#6b7280; padding:8px 0; text-align:center; }
   .btn.xs { padding:5px 10px; font-size:12px; }
   .kcard-top { display:flex; gap:10px; align-items:center; }
   .kcard-top .logo2 { width:36px; height:36px; border-radius:9px; background:#eef2ff; color:#4338ca;
@@ -406,6 +418,15 @@
   .tl-tags { display:inline-flex; flex-wrap:wrap; gap:4px; cursor:pointer; padding:1px 4px; border-radius:5px; border:1px dashed transparent; }
   .tl-tags:hover { background:#fff7ed; border-color:#fed7aa; }
   .tl-tags .chip { background:#fff7ed; color:#9a6312; border:1px solid #fed7aa; padding:1px 6px; border-radius:10px; font-size:11px; }
+  .tl-title-wrap { display:inline-flex; align-items:center; gap:6px; }
+  .tl-title { cursor:text; border:1px dashed transparent; border-radius:5px; padding:1px 4px; margin-left:-4px; }
+  .tl-title:hover { background:#eef2ff; border-color:#c7d2fe; }
+  .tl-actions { display:inline-flex; gap:3px; opacity:0; transition:opacity .15s; }
+  .tl-title-wrap:hover .tl-actions { opacity:1; }
+  .tl-action-btn { background:none; border:none; cursor:pointer; padding:1px 3px; font-size:12px; border-radius:4px; line-height:1; }
+  .tl-action-btn:hover { background:#e5e7eb; }
+  .tl-action-btn.del:hover { background:#fee2e2; }
+  .tl-title-edit { font:inherit; font-weight:600; font-size:13.5px; padding:1px 4px; border:1px solid var(--accent); border-radius:5px; min-width:120px; max-width:100%; color:var(--ink); }
   .inline-tag-editor { background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px; margin-top:4px; box-shadow:0 4px 14px rgba(0,0,0,.08); }
   .inline-tag-editor .its-selected { display:flex; flex-wrap:wrap; gap:5px; min-height:26px; margin-bottom:6px; }
   .inline-tag-editor .its-selected .ph { color:#9ca3af; font-size:11px; }
@@ -807,6 +828,7 @@
       <div id="appsListView">
         <div class="toolbar">
           <button class="btn" onclick="openCreate()">＋ 新建 Job</button>
+          <button class="btn sm ghost danger" id="delAllJobsBtn" onclick="deleteAllJobs()" title="一键删除全部职位（不可撤销）">🗑 清空所有职位</button>
           <input class="search" id="searchInput" placeholder="搜索职位 / 公司 / 地点 / 来源…" oninput="renderJobs()">
           <span><label>来源</label><select id="filterSource" onchange="renderJobs()">
             <option value="">全部</option>
@@ -824,18 +846,14 @@
       <!-- 详情视图 -->
       <div id="appsDetailView" style="display:none;"></div>
 
-      <!-- 无反馈 · 暂不关注（悬浮入口） -->
+      <!-- 无反馈 · 暂不关注（拖拽暂存区） -->
       <div id="parkDock" class="park-dock" style="display:none;">
-        <div class="park-panel" id="parkPanel" style="display:none;">
-          <div class="park-panel-hd">🗂️ 无反馈 · 暂不关注<button class="park-close" onclick="toggleParkPanel()">✕</button></div>
-          <div class="park-panel-body" id="parkPanelBody"></div>
-          <div class="park-tip">把「已投递但一直没收到任何反馈」的职位暂存到这里，首页将不再提示它的风险，也不计入「已超 3 天未回复」等提醒。需要时可在「暂不关注中」一键移出。</div>
+        <div class="park-list" id="parkList" style="display:none;" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropOnParkList(event)"></div>
+        <div id="parkZone" class="park-zone" onclick="toggleParkList()" ondragover="dragOverPark(event)" ondragleave="dragLeavePark(event)" ondrop="dropOnPark(event)">
+          <span class="park-zone-ico">🗂️</span>
+          <span class="park-zone-label">无反馈</span>
+          <span class="park-zone-count" id="parkFabCount">0</span>
         </div>
-        <button class="park-fab" onclick="toggleParkPanel()">
-          <span class="park-fab-ico">🗂️</span>
-          <span class="park-fab-label">无反馈</span>
-          <span class="park-fab-count" id="parkFabCount">0</span>
-        </button>
       </div>
     </section>
 
@@ -1226,6 +1244,7 @@
 <script>
 /* ============ 数据层 ============ */
 let jobSeq = 6;
+let deletedIds = [];
 const jobs = [
   {id:1, company:'SHEIN', role:'HR数字化PM', salary:'24-30K', source:'内推', city:'上海', industry:'跨境电商',
    exp:'3-5年', edu:'本科', keywords:['HRIS','人力资源数字化'], stage:'面试中', applyDate:'2026-05-20',
@@ -1329,8 +1348,8 @@ function renderJobs(){
   };
   const sortFn=(a,b)=> sort==='date_asc' ? applyDateOf(a).localeCompare(applyDateOf(b)) : applyDateOf(b).localeCompare(applyDateOf(a));
   const card=j=>`
-    <div class="kcard ${isParked(j)?'parked':''}" data-id="${j.id}" draggable="true" ondragstart="dragStart(event,${j.id})" onclick="openDetail(${j.id})">
-      ${isParked(j)?'<span class="park-badge" title="已放入「暂不关注」，首页不再提示风险">⏸ 暂不关注</span>':''}
+    <div class="kcard" data-id="${j.id}" draggable="true" ondragstart="dragStart(event,${j.id})" onclick="openDetail(${j.id})">
+      <button class="kcard-del" title="删除此职位" onclick="event.stopPropagation();deleteJob(${j.id})">🗑</button>
       <div class="kcard-top">
         <div class="logo2">${esc(initials(j.company))}</div>
         <div class="kcard-meta">
@@ -1342,7 +1361,7 @@ function renderJobs(){
     </div>`;
   const kanban=$('kanban');
   kanban.innerHTML=KANBAN_COLS.map(col=>{
-    const items=jobs.filter(j=>col.stages.includes(j.stage) && match(j)).sort(sortFn);
+    const items=jobs.filter(j=>col.stages.includes(j.stage) && match(j) && !j.parked).sort(sortFn);
     const cards=items.length?items.map(card).join(''):'<div class="kcard empty">暂无</div>';
     return `<div class="kcol" style="--accent:${col.color}">
       <div class="kcol-hd"><span class="dot"></span>${col.title} <span class="cnt">${items.length}</span></div>
@@ -1412,10 +1431,17 @@ function renderTimeline(j){
   if(!entries.length) return '<div class="ph">暂无阶段记录。</div>';
   return entries.map(({d})=>{
     const title=d.stage;
+    const isInterview=d.type==='interview';
+    let titleHtml='';
+    if(isInterview){
+      titleHtml=`<span class="tl-title-wrap"><span class="tl-title" data-stage="${esc(d.stage)}" onclick="editTimelineStage(${j.id},${d.tlIdx},this)">${esc(title)}</span><span class="tl-actions"><button class="tl-action-btn" title="编辑名称" onclick="event.stopPropagation();editTimelineStage(${j.id},${d.tlIdx},this.parentNode.parentNode.querySelector('.tl-title'))">✏️</button><button class="tl-action-btn del" title="删除" onclick="event.stopPropagation();deleteTimelineEvent(${j.id},${d.tlIdx})">🗑</button></span></span>`;
+    } else {
+      titleHtml=esc(title);
+    }
     let tagsHtml='', noteHtml='';
     // 只有面试子阶段/反馈（type==='interview'）才允许编辑弱项标签和备注；
     // 主流程阶段（已投递、笔试/测评、面试中、Offer、拒信/放弃）仅作为状态标记，不可编辑标签/备注。
-    if(d.type==='interview'){
+    if(isInterview){
       tagsHtml=d.tags&&d.tags.length
         ? `<span class="tl-tags" onclick="editTimelineTags(${j.id},${d.tlIdx},'${esc(d.stage)}',this)">${d.tags.map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</span>`
         : `<span class="tl-tags empty" onclick="editTimelineTags(${j.id},${d.tlIdx},'${esc(d.stage)}',this)">+ 添加弱项标签</span>`;
@@ -1428,7 +1454,7 @@ function renderTimeline(j){
     }
     const sep=(tagsHtml&&noteHtml)?'·':'';
     const dateInput=`<input type="date" class="tl-date" value="${esc(d.date||'')}" onchange="updateTimelineDate(${j.id},${d.tlIdx},'${esc(d.stage)}',this.value)" style="padding:2px 6px;border:1px solid var(--line);border-radius:6px;font-size:12px;">`;
-    return `<div class="tl-item ${d.type==='interview'?'tl-sub':''}"><div class="t">${esc(title)}</div><div class="d">${dateInput}${tagsHtml}${sep}${noteHtml}</div></div>`;
+    return `<div class="tl-item ${isInterview?'tl-sub':''}"><div class="t">${titleHtml}</div><div class="d">${dateInput}${tagsHtml}${sep}${noteHtml}</div></div>`;
   }).join('');
 }
 
@@ -1476,6 +1502,46 @@ function saveTimelineNote(jobId, tlIdx, stage, el){
   saveJobsLS();
   if($('appsDetailView').style.display!=='none') openDetail(jobId);
   toast(newNote?'备注已更新':'备注已清空');
+}
+
+/* Timeline 手动阶段/反馈：编辑标题 */
+function editTimelineStage(jobId, tlIdx, el){
+  const j=jobs.find(x=>x.id===jobId); if(!j || !j.timeline || tlIdx<0 || !j.timeline[tlIdx]) return;
+  const input=document.createElement('input');
+  input.type='text';
+  input.className='tl-title-edit';
+  input.value=el.textContent||'';
+  input.onblur=()=>saveTimelineStage(jobId, tlIdx, input);
+  input.onkeydown=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); input.blur(); } if(e.key==='Escape'){ if($('appsDetailView').style.display!=='none') openDetail(jobId); } };
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+}
+function saveTimelineStage(jobId, tlIdx, el){
+  const j=jobs.find(x=>x.id===jobId); if(!j || !j.timeline || tlIdx<0 || !j.timeline[tlIdx]) return;
+  const newStage=el.value.trim();
+  if(!newStage){ toast('阶段名称不能为空'); if($('appsDetailView').style.display!=='none') openDetail(jobId); return; }
+  const oldStage=j.timeline[tlIdx].stage;
+  if(newStage!==oldStage){
+    j.timeline[tlIdx].stage=newStage;
+    delete j.timelineSummary;
+    saveJobsLS();
+    toast('阶段名称已更新');
+  }
+  if($('appsDetailView').style.display!=='none') openDetail(jobId);
+}
+
+/* Timeline 手动阶段/反馈：删除 */
+function deleteTimelineEvent(jobId, tlIdx){
+  const j=jobs.find(x=>x.id===jobId); if(!j || !j.timeline || tlIdx<0 || !j.timeline[tlIdx]) return;
+  const e=j.timeline[tlIdx];
+  if(e.type!=='interview'){ toast('主流程阶段不支持删除，请通过「移动到」调整'); return; }
+  if(!confirm('确定删除这条阶段/反馈记录吗？\n「'+(e.stage||'')+'」'+(e.date?'（'+e.date+'）':''))) return;
+  j.timeline.splice(tlIdx,1);
+  delete j.timelineSummary;
+  saveJobsLS();
+  if($('appsDetailView').style.display!=='none') openDetail(jobId);
+  toast('已删除阶段/反馈');
 }
 
 /* Timeline 弱项标签再次编辑 */
@@ -1726,10 +1792,15 @@ function saveTimelineEvent(id){
   toast('已添加阶段/反馈，并回写题库');
 }
 let dragJobId=null;
+let parkListOpen=false;
 function dragStart(e,id){ dragJobId=id; e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed='move'; }
-function dragOver(e){ e.preventDefault(); const stage=e.currentTarget.dataset.stage; const j=dragJobId!=null?jobs.find(x=>x.id===dragJobId):null; const allowed=j && canMoveStage(j.stage, stage, j); e.dataTransfer.dropEffect=allowed?'move':'none'; e.currentTarget.classList.toggle('dragover', allowed); }
+function dragOver(e){ e.preventDefault(); const stage=e.currentTarget.dataset.stage; const j=dragJobId!=null?jobs.find(x=>x.id===dragJobId):null; const allowed=j && (j.parked || canMoveStage(j.stage, stage, j)); e.dataTransfer.dropEffect=allowed?'move':'none'; e.currentTarget.classList.toggle('dragover', allowed); }
 function dragLeave(e){ e.currentTarget.classList.remove('dragover'); }
-function drop(e,stage){ e.preventDefault(); e.currentTarget.classList.remove('dragover'); dragJobId=null; const id=+e.dataTransfer.getData('text/plain'); const j=jobs.find(x=>x.id===id); if(!j||j.stage===stage) return; if(!canMoveStage(j.stage, stage, j)){ toast('阶段只能正向推进、标记为拒绝/放弃，或撤回上一步'); return; } applyStageMove(j, stage); renderJobs(); if($('appsDetailView').style.display!=='none') openDetail(id); toast('已移动到 '+stage); }
+function drop(e,stage){ e.preventDefault(); e.currentTarget.classList.remove('dragover'); dragJobId=null; const id=+e.dataTransfer.getData('text/plain'); const j=jobs.find(x=>x.id===id); if(!j) return; let restored=false; if(j.parked){ j.parked=false; saveJobsLS(); renderParkPanel(); updateParkFab(); renderHome(); restored=true; } if(j.stage===stage){ if(restored) toast('已移出「暂不关注」，恢复关注'); return; } if(!canMoveStage(j.stage, stage, j)){ toast('阶段只能正向推进、标记为拒绝/放弃，或撤回上一步'); return; } applyStageMove(j, stage); renderJobs(); if($('appsDetailView').style.display!=='none') openDetail(id); toast((restored?'已恢复关注，并':'已')+'移动到 '+stage); }
+function dragOverPark(e){ e.preventDefault(); const j=dragJobId!=null?jobs.find(x=>x.id===dragJobId):null; const allowed=j && !j.parked; e.dataTransfer.dropEffect=allowed?'move':'none'; const z=$('parkZone'); if(z) z.classList.toggle('dragover', allowed); }
+function dragLeavePark(e){ const z=$('parkZone'); if(z) z.classList.remove('dragover'); }
+function dropOnPark(e){ e.preventDefault(); e.stopPropagation(); const z=$('parkZone'); if(z) z.classList.remove('dragover'); dragJobId=null; const id=+e.dataTransfer.getData('text/plain'); const j=jobs.find(x=>x.id===id); if(!j||j.parked) return; parkJob(id); }
+function dropOnParkList(e){ e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.remove('dragover'); dragJobId=null; const id=+e.dataTransfer.getData('text/plain'); const j=jobs.find(x=>x.id===id); if(!j||j.parked) return; parkJob(id); }
 
 /* ============ 详情页 ============ */
 function openDetail(id){
@@ -1741,7 +1812,7 @@ function openDetail(id){
     <div class="detail-wrapper">
       <div class="detail-top">
         <div class="detail-top-main">
-          <h1>${esc(j.role)}</h1>
+          <h1 style="margin:0;">${esc(j.role)}</h1>
           <div class="company-pill">${esc(j.company)} · ${stagePill(j.stage)}</div>
           <div class="detail-meta">
             <span>📍 ${esc(j.city||'—')}</span>
@@ -1794,11 +1865,16 @@ function openDetail(id){
           </div>
         </aside>
       </div>
-    </div>`;
+    </div>
+    <button class="detail-del-fab" onclick="deleteJob(${j.id})" title="删除此职位">
+      <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V9c0-.55-.45-1-1-1h-2V6c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H7c-.55 0-1 .45-1 1v10zM10 6h4v2h-4V6z"/></svg>
+      删除此职位
+    </button>`;
   window.scrollTo(0,0);
   initTlWeakSelect();
+  const pd=$('parkDock'); if(pd) pd.style.display='none';
 }
-function backToList(){ $('appsDetailView').style.display='none'; $('appsListView').style.display='block'; }
+function backToList(){ $('appsDetailView').style.display='none'; $('appsListView').style.display='block'; refreshPark(); }
 
 /* ============ 新建 / 解析 ============ */
 function clearCreateForm(){
@@ -2579,28 +2655,35 @@ function isParked(j){ return !!(j && j.parked); }
 function isNoFeedback(j){ return j.stage==='已投递' && !jobReachedReply(j); }
 function parkJob(id){ const j=jobs.find(x=>x.id===id); if(!j) return; j.parked=true; saveJobsLS(); refreshPark(); renderHome(); toast('已放入「暂不关注」，系统不再在首页提示其风险'); }
 function unparkJob(id){ const j=jobs.find(x=>x.id===id); if(!j) return; j.parked=false; saveJobsLS(); refreshPark(); renderHome(); toast('已移出「暂不关注」，恢复关注'); }
-function refreshPark(){ renderJobs(); renderParkPanel(); updateParkFab(); }
-function toggleParkPanel(){ const p=$('parkPanel'); if(!p) return; const open=p.style.display!=='block'; p.style.display=open?'block':'none'; if(open) renderParkPanel(); }
+function refreshPark(){ renderJobs(); updateParkFab(); }
+function toggleParkPanel(){ /* 旧面板已移除，保留空函数避免遗留调用报错 */ }
+function toggleParkList(){ parkListOpen=!parkListOpen; renderParkPanel(); }
 function updateParkFab(){
   const dock=$('parkDock'); if(!dock) return;
   const parked=jobs.filter(isParked).length;
   const fab=$('parkFabCount'); if(fab) fab.textContent=parked;
-  const show=(jobs.some(j=>isNoFeedback(j)&&!isParked(j)) || parked>0);
+  // 看板上有任意岗位时就常驻显示无反馈胶囊：它既是"拖入即暂存"的投放区，也在无反馈/暂存岗位存在时提示
+  const show=jobs.length>0;
   dock.style.display=show?'block':'none';
+  renderParkPanel();
 }
 function renderParkPanel(){
-  const body=$('parkPanelBody'); if(!body) return;
-  const cand=jobs.filter(j=>isNoFeedback(j) && !isParked(j));
+  const list=$('parkList'); if(!list) return;
   const parked=jobs.filter(isParked);
-  let h='';
-  h+='<div class="park-sec"><div class="park-sec-hd">可暂存（已投递 · 无任何反馈）<span class="park-num">'+cand.length+'</span></div>';
-  h+= cand.length? cand.map(j=>'<div class="park-item"><div class="park-item-main"><div class="pi-name">'+esc(j.role)+'</div><div class="pi-sub">'+esc(j.company)+' · 投递 '+esc(applyDateOf(j))+'</div></div><button class="btn xs" onclick="parkJob('+j.id+')">暂存 ⏸</button></div>').join('') : '<div class="ph" style="padding:8px 0;">没有待处理的无反馈职位 🎉</div>';
-  h+='</div>';
-  h+='<div class="park-sec"><div class="park-sec-hd">暂不关注中<span class="park-num">'+parked.length+'</span></div>';
-  h+= parked.length? parked.map(j=>'<div class="park-item"><div class="park-item-main"><div class="pi-name">'+esc(j.role)+(j.stage!=='已投递'?'<span class="park-stage">'+esc(j.stage)+'</span>':'')+'</div><div class="pi-sub">'+esc(j.company)+'</div></div><button class="btn xs ghost" onclick="unparkJob('+j.id+')">移出 ↩</button></div>').join('') : '<div class="ph" style="padding:8px 0;">暂无暂存职位。</div>';
-  h+='</div>';
-  body.innerHTML=h;
+  let h='<div class="park-list-hd">暂不关注中<span class="park-num">'+parked.length+'</span></div>';
+  if(parked.length){
+    h+=parked.map(j=>'<div class="park-item" draggable="true" ondragstart="dragStart(event,'+j.id+')"><div class="park-item-main"><div class="pi-name">'+esc(j.role)+(j.stage!=='已投递'?'<span class="park-stage">'+esc(j.stage)+'</span>':'')+'</div><div class="pi-sub">'+esc(j.company)+'</div></div></div>').join('');
+  } else {
+    h+='<div class="park-empty">把岗位拖到这里暂存</div>';
+  }
+  list.innerHTML=h;
+  list.style.display=(parkListOpen && parked.length>0)?'block':'none';
 }
+/* 点击空白处收起「暂不关注中」列表（点击 parkDock 内部不关闭） */
+document.addEventListener('click', function(e){
+  const dock=$('parkDock');
+  if(parkListOpen && dock && !dock.contains(e.target)){ toggleParkList(); }
+});
 function lastUpdateOf(j){
   const tl=(j.timeline||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
   const last=tl[tl.length-1];
@@ -4028,8 +4111,33 @@ function loadCheatLS(){
 const DATA_VERSION=1;
 function storageFailWarn(name){ try{ toast('⚠️ '+name+'保存失败：本地存储空间可能已满（配额约 5MB）。大截图 / PDF 建议压缩后上传，或定期用「导出」备份。'); }catch(e){} }
 function lsSave(key, payload, name){ try{ localStorage.setItem(key, payload); try{ sessionStorage.setItem(key, payload); }catch(e){} return true; }catch(e){ storageFailWarn(name||key); return false; } }
-function loadJobsLS(){ try{ const v=localStorage.getItem('ajhc_jobs'); if(v){ const o=JSON.parse(v); if(o&&Array.isArray(o.jobs)){ jobs.length=0; jobs.push(...o.jobs); jobSeq=o.seq||Math.max(0,...jobs.map(j=>j.id)); return true; } } }catch(e){} return false; }
-function saveJobsLS(){ lsSave('ajhc_jobs', JSON.stringify({version:DATA_VERSION, jobs, seq:jobSeq}), 'Job 数据'); }
+function loadJobsLS(){ try{ const v=localStorage.getItem('ajhc_jobs'); if(v){ const o=JSON.parse(v); if(o&&Array.isArray(o.jobs)){ deletedIds=Array.isArray(o.deletedIds)?o.deletedIds.slice():[]; const ids=new Set(deletedIds); jobs.length=0; jobs.push(...o.jobs.filter(j=>j && j.id!=null && !ids.has(j.id))); jobSeq=o.seq||Math.max(0,...jobs.map(j=>j.id||0)); return true; } } }catch(e){} return false; }
+function saveJobsLS(){ lsSave('ajhc_jobs', JSON.stringify({version:DATA_VERSION, jobs, seq:jobSeq, deletedIds}), 'Job 数据'); }
+/* ============ 删除职位 ============ */
+function deleteJob(id){
+  const j=jobs.find(x=>x.id===id); if(!j) return;
+  if(!confirm('确定删除职位「'+(j.role||'')+' @ '+(j.company||'')+'」吗？\n此操作不可撤销，该职位的面试锦囊也会一并删除。')) return;
+  const idx=jobs.findIndex(x=>x.id===id);
+  if(idx>=0) jobs.splice(idx,1);
+  if(!deletedIds.includes(id)) deletedIds.push(id);             // 记录删除标记，确保跨端同步时过滤
+  if(cheatByJob[id]){ delete cheatByJob[id]; saveCheatLS(); }   // 同步清理该职位关联锦囊
+  saveJobsLS();
+  if($('appsDetailView').style.display!=='none') backToList();
+  refreshPark(); renderHome();
+  toast('已删除职位：'+(j.role||''));
+}
+function deleteAllJobs(){
+  if(jobs.length===0){ toast('当前没有职位可删除'); return; }
+  if(!confirm('确定清空全部 '+jobs.length+' 个职位吗？\n此操作不可撤销，所有职位及对应面试锦囊将被永久删除。')) return;
+  const idsToDel=jobs.map(j=>j.id);
+  jobs.length=0;
+  idsToDel.forEach(id=>{ if(!deletedIds.includes(id)) deletedIds.push(id); }); // 批量记录删除标记
+  cheatByJob={}; saveCheatLS();                                 // 清空所有职位关联锦囊
+  saveJobsLS();
+  if($('appsDetailView').style.display!=='none') backToList();
+  refreshPark(); renderHome();
+  toast('已清空全部职位');
+}
 function loadBrainLS(){ try{ const v=localStorage.getItem('ajhc_brain'); if(v){ const o=JSON.parse(v); if(o&&Array.isArray(o.q)){ brainQ.length=0; brainQ.push(...o.q); brainSeq=o.seq||Math.max(0,...brainQ.map(x=>x.id)); return true; } } }catch(e){} return false; }
 function saveBrainLS(){ lsSave('ajhc_brain', JSON.stringify({version:DATA_VERSION, q:brainQ, seq:brainSeq}), '行为题库'); }
 function loadStarLS(){ try{ const v=localStorage.getItem('ajhc_star'); if(v){ const o=JSON.parse(v); if(o&&Array.isArray(o.s)){ starStories.length=0; starStories.push(...o.s); starSeq=o.seq||Math.max(0,...starStories.map(x=>x.id)); return true; } } }catch(e){} return false; }
@@ -4513,9 +4621,19 @@ function mergeStorageValue(key, localStr, importedStr){
   if(key==='ajhc_review' || key==='ajhc_review_history' || key==='ajhc_review_reports' || key==='ajhc_mock_log'){
     return JSON.stringify(mergeById(local, imported));
   }
-  // 包装数组：jobs / star / brain
-  if(key==='ajhc_jobs' || key==='ajhc_star' || key==='ajhc_brain'){
-    const arrKey=key==='ajhc_jobs'?'jobs':(key==='ajhc_star'?'s':'q');
+  // 包装数组：jobs 额外维护 deletedIds 以实现删除跨端传播
+  if(key==='ajhc_jobs'){
+    const localDeleted=Array.isArray(local.deletedIds)?local.deletedIds:[];
+    const importedDeleted=Array.isArray(imported.deletedIds)?imported.deletedIds:[];
+    const deletedUnion=Array.from(new Set([...localDeleted, ...importedDeleted]));
+    const merged=mergeById(local.jobs, imported.jobs).filter(j=> !deletedUnion.includes(j.id));
+    // 已删除 id 若不再出现于任何设备数据中，则清理以控制体积
+    const existingIds=new Set(merged.map(j=>j.id));
+    const prunedDeleted=deletedUnion.filter(id=>existingIds.has(id));
+    return JSON.stringify({version:Math.max(local.version||0, imported.version||0), jobs:merged, seq:Math.max(local.seq||0, imported.seq||0), deletedIds:prunedDeleted});
+  }
+  if(key==='ajhc_star' || key==='ajhc_brain'){
+    const arrKey=key==='ajhc_star'?'s':'q';
     const merged=mergeById(local[arrKey], imported[arrKey]);
     return JSON.stringify({version:Math.max(local.version||0, imported.version||0), [arrKey]:merged, seq:Math.max(local.seq||0, imported.seq||0)});
   }
