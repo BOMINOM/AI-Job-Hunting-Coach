@@ -1032,7 +1032,7 @@
           <div class="ph">面试反馈打标累计形成能力图谱。</div>
         </div>
                 <div class="card" style="grid-column:1/-1;"><h3>☁️ 多端同步（手机/电脑，GitHub Gist）</h3>
-          <div class="ph">基于 GitHub Gist + 个人访问令牌（Token）。数据存放在一个<strong>私有 Gist</strong> 文件 <code>ajhc_data_backup.json</code>；多端使用<strong>同一个 Token</strong> 即自动同步，本机数据改动会每 <strong>1 小时</strong> 自动上传一次；不到 1 小时急着同步，可点下方「立即上传」手动触发合并。Token 仅存你本机浏览器，<strong>不会</strong>进入备份文件。</div>
+          <div class="ph">基于 GitHub Gist + 个人访问令牌（Token）。数据存放在一个<strong>私有 Gist</strong> 文件 <code>ajhc_data_backup.json</code>；demo 版与纯净版<strong>各自独立</strong>（不同 Token、互不串数据），本机数据改动会每 <strong>1 小时</strong> 自动上传一次；不到 1 小时急着同步，可点下方「立即上传」手动触发合并。Token 仅存你本机浏览器，<strong>不会</strong>进入备份文件。</div>
 
           <details style="margin-top:10px;border:1px solid #e5e7eb;border-radius:10px;padding:10px;">
             <summary style="cursor:pointer;font-weight:600;color:#4f46e5;list-style:none;">📖 查看设置方法（点击展开）</summary>
@@ -1242,6 +1242,50 @@
 <div class="toast" id="toast"></div>
 
 <script>
+/* ===== 命名空间隔离：修复同一 origin 下 demo 版 / 纯净版 GitHub Pages 共享 localStorage 导致数据互相串流的问题 =====
+   本文件命名空间 = 'prod'（demo 版文件请改为 'demo'）。
+   逻辑存储键（如 ajhc_jobs）在读写 localStorage / sessionStorage 时自动映射为物理键 ajhc_<NS>_jobs，
+   Gist 同步 / 合并逻辑全部沿用逻辑键，无需改动；Gist 配置键也按 NS 隔离（各自独立 Token）。 */
+const AJHC_NS = 'prod';
+(function(){
+  var nsKey = (typeof AJHC_NS==='string' && AJHC_NS) ? 'ajhc_'+AJHC_NS+'_' : null;
+  // 1) 旧数据一次性迁移到本命名空间（复制，不删除，避免影响同 origin 的另一版本）
+  if(nsKey){
+    try{
+      Object.keys(localStorage).forEach(function(k){
+        if(k.indexOf('ajhc_')===0 && k.indexOf(nsKey)!==0 && k!=='ajhc_gist_cfg'){
+          var nk=nsKey+k.slice(5);
+          if(localStorage.getItem(nk)==null) localStorage.setItem(nk, localStorage.getItem(k));
+        }
+      });
+    }catch(e){}
+    // cookie（ajhc_ai）同样迁移
+    try{
+      var m=document.cookie.match(/(?:^|; )ajhc_ai=([^;]*)/);
+      if(m){
+        var oldVal=decodeURIComponent(m[1]);
+        var nm=document.cookie.match(new RegExp('(?:^|; )'+nsKey+'ai=([^;]*)'));
+        if(!nm){
+          var d=new Date(); d.setTime(d.getTime()+365*24*60*60*1000);
+          document.cookie=nsKey+'ai='+oldVal+';expires='+d.toUTCString()+';path=/;SameSite=Lax'+(location.protocol==='https:'?';Secure':'');
+        }
+      }
+    }catch(e){}
+  }
+  // 2) 安装命名空间 shim：localStorage / sessionStorage 的按键自动加前缀
+  if(nsKey){
+    function t(k){ return (typeof k==='string' && k.indexOf('ajhc_')===0 && k.indexOf(nsKey)!==0) ? nsKey+k.slice(5) : k; }
+    ['localStorage','sessionStorage'].forEach(function(storeName){
+      var S=window[storeName]; if(!S) return;
+      var _g=S.getItem.bind(S), _s=S.setItem.bind(S), _r=S.removeItem.bind(S);
+      try{
+        S.getItem=function(k){ return _g(t(k)); };
+        S.setItem=function(k,v){ return _s(t(k), v); };
+        S.removeItem=function(k){ return _r(t(k)); };
+      }catch(e){}
+    });
+  }
+})();
 /* ============ 数据层 ============ */
 let jobSeq = 0;
 let deletedIds = [];
@@ -2965,6 +3009,12 @@ function getCookie(name){
   const m=document.cookie.match(new RegExp('(?:^|; )'+name+'=([^;]*)'));
   return m? decodeURIComponent(m[1]) : null;
 }
+/* 命名空间隔离：cookie 同样按 AJHC_NS 区分，避免同 origin 下 demo / 纯净版互相串数据 */
+(function(){
+  const _g=getCookie, _s=setCookie;
+  getCookie=function(n){ return _g((n && n.indexOf('ajhc_')===0) ? 'ajhc_'+AJHC_NS+'_'+n.slice(5) : n); };
+  setCookie=function(n,v,d){ return _s((n && n.indexOf('ajhc_')===0) ? 'ajhc_'+AJHC_NS+'_'+n.slice(5) : n, v, d); };
+})();
 (function loadAiCfg(){
   let s=null;
   try{ s=localStorage.getItem('ajhc_ai'); }catch(e){}
@@ -4652,7 +4702,7 @@ function restoreJsonBackup(){
  * - 用 GitHub Personal Access Token 认证，数据存放在一个私有 Gist 文件 ajhc_data_backup.json。
  * - 首次使用自动查找同名 Gist（按文件名），没有则新建一个私有 Gist。
  * - 写冲突用 mergeStorageValue 双向按 id 合并不丢数据；本机任意 ajhc_* 改动后 1.5s 自动上传。
- * - 多端用同一个 Token（同一账号）即可定位同一份数据；Token 仅存本机，不入备份文件。
+ * - demo 版与纯净版各自独立（不同 Token → 不同备份）；Token 仅存本机，不入备份文件。
  */
 
 let __gistPushTimer=null, __gistBusy=false, __gistSynced=false, __gistRateLimitedUntil=0, __lastPushedData=null, __lastAutoPushTime=0;
@@ -4662,7 +4712,7 @@ function gistStatus(msg, ok){
   if(el){ el.textContent=msg||''; el.style.color = ok===true?'#059669':(ok===false?'#dc2626':'#6b7280'); }
 }
 
-const GIST_CFG_KEY='ajhc_gist_cfg';
+const GIST_CFG_KEY='ajhc_'+AJHC_NS+'_gist_cfg';
 const GIST_FILENAME='ajhc_data_backup.json';
 
 function loadGistCfg(){ try{ return JSON.parse(localStorage.getItem(GIST_CFG_KEY)||'{}'); }catch(e){ return {}; } }
