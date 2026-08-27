@@ -4819,7 +4819,9 @@ async function gistPull(){
       if(!(k in remoteData)) return;
       const local=localStorage.getItem(k);
       const merged = local===null ? remoteData[k] : mergeStorageValue(k, local, remoteData[k]);
-      try{ localStorage.setItem(k, merged); count++; }catch(e){}
+      if(merged !== local){
+        try{ localStorage.setItem(k, merged); count++; }catch(e){}
+      }
     });
     __gistSynced=true;
     gistStatus('已从 Gist 拉取并合并 '+count+' 项数据', true);
@@ -4910,18 +4912,22 @@ function gistDisconnect(){
 }
 
 /* 启动自动连接：若已配置 Token 则自动拉取（仅首次会话拉取，避免刷新循环） */
-window.addEventListener('load', ()=>{
-  const cfg=loadGistCfg();
-  if(cfg && cfg.connected && cfg.token){
-    setTimeout(async ()=>{
-      if(sessionStorage.getItem('__cloudNeedRender')){ sessionStorage.removeItem('__cloudNeedRender'); __gistSynced=true; gistSetUI(); return; }
-      try{ await gistPull(); __gistSynced=true; }catch(e){}
-      gistSetUI();
-    }, 800);
-  }
-  startHourlyAutoPush();
-  gistSetUI();
-});
+(function initGistSync(){
+  const run=()=>{
+    const cfg=loadGistCfg();
+    if(cfg && cfg.connected && cfg.token){
+      if(sessionStorage.getItem('__cloudNeedRender')){
+        sessionStorage.removeItem('__cloudNeedRender'); __gistSynced=true;
+      } else {
+        gistPull().then(()=>{ __gistSynced=true; }).catch(()=>{}).finally(()=>gistSetUI());
+      }
+    }
+    startHourlyAutoPush();
+    gistSetUI();
+  };
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', run); }
+  else { run(); }
+})();
 
 /* Enter 快捷新增 */
 (function(){
