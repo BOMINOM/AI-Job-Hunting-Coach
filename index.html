@@ -722,9 +722,19 @@
   .mock-q .mq-type { font-size:11px; color:#fff; background:var(--indigo); padding:2px 8px; border-radius:10px; flex:none; }
   .mock-q textarea { width:100%; min-height:60px; margin-top:8px; }
 
-  .star { border:1px solid #e6ecff; border-radius:10px; padding:10px 12px; margin-bottom:9px; background:#fff; }
-  .star textarea { width:100%; min-height:54px; margin-top:6px; }
-  .star .x { float:right; cursor:pointer; color:var(--soft); }
+  /* 可点击展开的经历/题库卡片 */
+  .story-card { border:1px solid #e6ecff; border-radius:10px; padding:12px 14px; margin-bottom:10px; background:#fff; cursor:pointer; transition:box-shadow .15s, border-color .15s; }
+  .story-card:hover { box-shadow:0 2px 10px rgba(99,102,241,.08); border-color:#d2d8ff; }
+  .story-card.expanded { cursor:default; background:#fcfdff; }
+  .story-card .sc-hd { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .story-card .sc-title { font-weight:700; font-size:13px; color:var(--ink); word-break:break-word; flex:1; line-height:1.45; }
+  .story-card .sc-actions { display:flex; gap:10px; flex:none; }
+  .story-card .sc-actions span { cursor:pointer; color:var(--soft); font-size:15px; line-height:1; }
+  .story-card .sc-actions span:hover { color:var(--indigo); }
+  .story-card .sc-preview { color:var(--soft); font-size:12.5px; margin-top:5px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .story-card.expanded input.sc-title-input { width:100%; font-weight:700; font-size:13px; padding:8px 10px; margin-bottom:6px; border:1px solid #e6ecff; border-radius:8px; box-sizing:border-box; }
+  .story-card.expanded textarea { width:100%; min-height:80px; margin-top:6px; border:1px solid #e6ecff; border-radius:8px; padding:8px 10px; line-height:1.55; box-sizing:border-box; }
+  .story-card .sc-save-row { display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
 
   .tag-lv { margin-bottom:12px; }
   .tag-lv h4 { font-size:12.5px; color:var(--soft); margin-bottom:6px; }
@@ -3111,18 +3121,42 @@ function topWeak(n){ return Object.entries(weakCounts()).sort((a,b)=>b[1]-a[1]).
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); URL.revokeObjectURL(a.href); }
 
 /* ============ 行为面试题库 ============ */
+let expandedBrainId=null;
 function renderBrainBank(){
-  $('brainBank').innerHTML = brainQ.length? brainQ.map(q=>`
-    <div class="star">
-      <span class="x" onclick="removeQ(${q.id})" title="删除此题">✕</span>
-      <b>「${esc(q.q)}」</b>
-      <textarea id="ans${q.id}" onblur="saveAns(${q.id})" placeholder="填写/编辑标准答案（STAR 结构）">${esc(q.ans||'')}</textarea>
-    </div>`).join('')
-    : '<div class="ph">题库为空，请在上方新增题目，或于 Interview Hub 训练中沉淀。</div>';
+  $('brainBank').innerHTML = brainQ.length? brainQ.map(q=>{
+    const isOpen=expandedBrainId===q.id;
+    const preview=(q.ans||'').trim()||'（暂无标准答案）';
+    if(isOpen){
+      return `<div class="story-card expanded" data-id="${q.id}">
+        <input type="text" class="sc-title-input" id="qTitle${q.id}" value="${esc(q.q)}" onblur="saveBrain(${q.id})" placeholder="面试题目">
+        <textarea id="ans${q.id}" onblur="saveBrain(${q.id})" placeholder="填写/编辑标准答案（STAR 结构）">${esc(q.ans||'')}</textarea>
+        <div class="sc-save-row">
+          <button class="btn sm" onclick="event.stopPropagation(); collapseBrain()">✓ 保存并收起</button>
+          <div class="sc-actions"><span onclick="event.stopPropagation(); removeQ(${q.id})" title="删除此题">✕</span></div>
+        </div>
+      </div>`;
+    }
+    return `<div class="story-card" onclick="expandBrain(${q.id})">
+      <div class="sc-hd">
+        <div class="sc-title">「${esc(q.q)}」</div>
+        <div class="sc-actions"><span onclick="event.stopPropagation(); removeQ(${q.id})" title="删除此题">✕</span></div>
+      </div>
+      <div class="sc-preview">${esc(preview)}</div>
+      ${(q.weak||[]).length?`<div class="type-row" style="margin-top:6px;">${q.weak.map(w=>`<span class="tag">${esc(w)}</span>`).join('')}</div>`:''}
+    </div>`;
+  }).join('')
+  : '<div class="ph">题库为空，请在上方新增题目，或于 Interview Hub 训练中沉淀。</div>';
+  if(expandedBrainId){
+    const ta=$('ans'+expandedBrainId);
+    if(ta) setTimeout(()=>autoResize(ta),0);
+  }
 }
-function saveAns(qid){ const q=brainQ.find(x=>x.id==qid); if(!q) return; const v=$('ans'+qid).value.trim(); q.ans=v; renderBrainBank(); saveBrainLS(); }
-function removeQ(qid){ brainQ=brainQ.filter(x=>x.id!=qid); renderBrainBank(); saveBrainLS(); }
-function addQ(){ const v=$('newQ').value.trim(); if(!v){ toast('请输入真题'); return; } brainQ.push({id:++brainSeq, q:v, weak:[], ans:''}); $('newQ').value=''; renderBrainBank(); saveBrainLS(); toast('已新增'); }
+function expandBrain(id){ expandedBrainId=id; renderBrainBank(); }
+function collapseBrain(){ expandedBrainId=null; renderBrainBank(); }
+function saveBrain(qid){ const q=brainQ.find(x=>x.id==qid); if(!q) return; const t=$('qTitle'+qid); if(t) q.q=t.value.trim(); const v=$('ans'+qid); if(v) q.ans=v.value.trim(); saveBrainLS(); }
+function saveAns(qid){ saveBrain(qid); }
+function removeQ(qid){ brainQ=brainQ.filter(x=>x.id!=qid); if(expandedBrainId===qid) expandedBrainId=null; renderBrainBank(); saveBrainLS(); }
+function addQ(){ const v=$('newQ').value.trim(); if(!v){ toast('请输入真题'); return; } const id=++brainSeq; brainQ.push({id, q:v, weak:[], ans:''}); $('newQ').value=''; expandedBrainId=id; renderBrainBank(); saveBrainLS(); toast('已新增'); }
 
 /* ============ Interview Hub ============ */
 function loadMockLogLS(){ try{ const v=localStorage.getItem('ajhc_mock_log'); if(v) return JSON.parse(v)||[]; }catch(e){} return []; }
@@ -4215,15 +4249,40 @@ async function requestHint(){
     pushMsg('interviewer', hint, {kind:'hint'});
   }finally{ mockChat.thinking=false; renderMockChat(); }
 }
+let expandedStarId=null;
 function renderStarList(){
-  $('starList').innerHTML = starStories.length? starStories.map(s=>`
-    <div class="star"><span class="x" onclick="removeStar(${s.id})">✕</span><b>${esc(s.title)}</b>
-      <textarea id="star${s.id}" onblur="saveStar(${s.id})" placeholder="STAR 结构：背景/行动/结果">${esc(s.story||'')}</textarea></div>`).join('')
-    : '<div class="ph">暂无 STAR 故事，点击新增沉淀你的经历库。</div>';
+  $('starList').innerHTML = starStories.length? starStories.map(s=>{
+    const isOpen=expandedStarId===s.id;
+    const preview=(s.story||'').trim()||'（暂无内容）';
+    if(isOpen){
+      return `<div class="story-card expanded" data-id="${s.id}">
+        <input type="text" class="sc-title-input" id="starTitle${s.id}" value="${esc(s.title)}" onblur="saveStar(${s.id})" placeholder="经历标题">
+        <textarea id="star${s.id}" onblur="saveStar(${s.id})" placeholder="STAR 结构：背景/行动/结果">${esc(s.story||'')}</textarea>
+        <div class="sc-save-row">
+          <button class="btn sm" onclick="event.stopPropagation(); collapseStar()">✓ 保存并收起</button>
+          <div class="sc-actions"><span onclick="event.stopPropagation(); removeStar(${s.id})" title="删除此经历">✕</span></div>
+        </div>
+      </div>`;
+    }
+    return `<div class="story-card" onclick="expandStar(${s.id})">
+      <div class="sc-hd">
+        <div class="sc-title">${esc(s.title)}</div>
+        <div class="sc-actions"><span onclick="event.stopPropagation(); removeStar(${s.id})" title="删除此经历">✕</span></div>
+      </div>
+      <div class="sc-preview">${esc(preview)}</div>
+    </div>`;
+  }).join('')
+  : '<div class="ph">暂无 STAR 故事，点击新增沉淀你的经历库。</div>';
+  if(expandedStarId){
+    const ta=$('star'+expandedStarId);
+    if(ta) setTimeout(()=>autoResize(ta),0);
+  }
 }
-function addStar(){ const v=$('starTitle').value.trim(); if(!v){ toast('请输入经历标题'); return; } starStories.push({id:++starSeq, title:v, story:''}); $('starTitle').value=''; renderStarList(); saveStarLS(); }
-function saveStar(id){ const s=starStories.find(x=>x.id==id); if(s) s.story=$('star'+id).value; saveStarLS(); }
-function removeStar(id){ starStories=starStories.filter(x=>x.id!=id); renderStarList(); saveStarLS(); }
+function expandStar(id){ expandedStarId=id; renderStarList(); }
+function collapseStar(){ expandedStarId=null; renderStarList(); }
+function addStar(){ const v=$('starTitle').value.trim(); if(!v){ toast('请输入经历标题'); return; } const id=++starSeq; starStories.push({id, title:v, story:''}); $('starTitle').value=''; expandedStarId=id; renderStarList(); saveStarLS(); }
+function saveStar(id){ const s=starStories.find(x=>x.id==id); if(!s) return; const t=$('starTitle'+id); if(t) s.title=t.value.trim(); const v=$('star'+id); if(v) s.story=v.value; saveStarLS(); }
+function removeStar(id){ starStories=starStories.filter(x=>x.id!=id); if(expandedStarId===id) expandedStarId=null; renderStarList(); saveStarLS(); }
 
 /* ============ Settings ============ */
 function renderSettings(){
