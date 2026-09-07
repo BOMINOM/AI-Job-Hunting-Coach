@@ -257,16 +257,21 @@
   .kcard.parked .park-badge { right:36px; }
   .park-dock { position:fixed; right:22px; bottom:22px; z-index:60; display:flex; flex-direction:column; align-items:flex-end; gap:10px; pointer-events:none; }
   .park-dock > * { pointer-events:auto; }
+  body.create-open .park-dock { display:none !important; }
   .park-zone { display:flex; align-items:center; gap:6px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:2px dashed transparent; border-radius:999px; padding:11px 16px; font-size:14px; font-weight:600; cursor:pointer; box-shadow:0 8px 22px rgba(99,102,241,.4); transition:transform .1s, box-shadow .1s; }
   .park-zone:hover { transform:translateY(-1px); }
   .park-zone.dragover { border-color:#fff; box-shadow:0 0 0 4px rgba(99,102,241,.25), 0 12px 28px rgba(99,102,241,.45); transform:scale(1.03); }
   .park-zone-ico { font-size:16px; }
   .park-zone-count { background:#fff; color:#6366f1; border-radius:999px; min-width:20px; height:20px; padding:0 6px; display:inline-grid; place-items:center; font-size:12px; font-weight:700; }
   .detail-del-fab { position:fixed; right:22px; bottom:22px; z-index:60; display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; border:none; border-radius:999px; padding:11px 16px; font-size:14px; font-weight:600; cursor:pointer; box-shadow:0 8px 22px rgba(220,38,38,.4); }
+  .detail-action-fabs { position:fixed; right:22px; bottom:22px; z-index:60; display:flex; align-items:center; gap:10px; }
+  .detail-action-fabs .detail-del-fab { position:static; }
+  .detail-edit-fab { display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#2563eb,#4f46e5); color:#fff; border:none; border-radius:999px; padding:11px 16px; font-size:14px; font-weight:600; cursor:pointer; box-shadow:0 8px 22px rgba(37,99,235,.35); }
+  .detail-edit-fab:hover { transform:translateY(-1px); }
   .detail-del-fab:hover { transform:translateY(-1px); }
   .detail-del-fab svg { width:14px; height:14px; fill:currentColor; }
   /* 手机端抬高删除 FAB，避开 60px 底部导航 + 安全区，确保不遮挡菜单切换 */
-  @media (max-width:600px){ .detail-del-fab{ bottom:calc(60px + env(safe-area-inset-bottom) + 16px); } .park-dock{ bottom:calc(60px + env(safe-area-inset-bottom) + 16px); } }
+  @media (max-width:600px){ .detail-action-fabs{ bottom:calc(60px + env(safe-area-inset-bottom) + 16px); } .park-dock{ bottom:calc(60px + env(safe-area-inset-bottom) + 16px); } }
   .park-list { width:280px; max-width:calc(100vw - 44px); height:320px; overflow:auto; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,.18); padding:10px 12px; }
   .park-list.dragover { background:#eef2ff; }
   .park-list-hd { font-size:13px; font-weight:700; color:#374151; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
@@ -427,6 +432,9 @@
   .tl-action-btn:hover { background:#e5e7eb; }
   .tl-action-btn.del:hover { background:#fee2e2; }
   .tl-title-edit { font:inherit; font-weight:600; font-size:13.5px; padding:1px 4px; border:1px solid var(--accent); border-radius:5px; min-width:120px; max-width:100%; color:var(--ink); }
+  .tl-form-text { width:100%; min-height:38px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font-size:13px; line-height:1.5; resize:vertical; }
+  .tl-form-text::placeholder { font-size:12px; color:var(--soft); }
+  #createModal.editing-job .extract-box { display:none; }
   .inline-tag-editor { background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px; margin-top:4px; box-shadow:0 4px 14px rgba(0,0,0,.08); }
   .inline-tag-editor .its-selected { display:flex; flex-wrap:wrap; gap:5px; min-height:26px; margin-bottom:6px; }
   .inline-tag-editor .its-selected .ph { color:#9ca3af; font-size:11px; }
@@ -732,6 +740,7 @@
   .story-card .sc-actions span { cursor:pointer; color:var(--soft); font-size:15px; line-height:1; }
   .story-card .sc-actions span:hover { color:var(--indigo); }
   .story-card .sc-preview { color:var(--soft); font-size:12.5px; margin-top:5px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  #starList, #brainBank { overflow-anchor:none; }
   .story-card.expanded input.sc-title-input { width:100%; font-weight:700; font-size:13px; padding:8px 10px; margin-bottom:6px; border:1px solid #e6ecff; border-radius:8px; box-sizing:border-box; }
   .story-card.expanded textarea { width:100%; min-height:80px; margin-top:6px; border:1px solid #e6ecff; border-radius:8px; padding:8px 10px; line-height:1.55; box-sizing:border-box; }
   .story-card .sc-save-row { display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
@@ -1036,12 +1045,12 @@
         </div>
         </div>
         </div>
-        <div class="card" style="grid-column:1/-1;"><h3>🏷️ 能力标签词库（弱项标签 · 固定 + 可扩展）</h3>
+        <div class="card tag-card" style="grid-column:1/-1;order:2;"><h3>🏷️ 能力标签词库（弱项标签 · 固定 + 可扩展）</h3>
           <div id="tagMgr"></div>
           <div class="add-row"><input id="newTag" placeholder="新增弱项标签，如 业务敏感度"><button class="btn sm" onclick="addTag()">＋ 添加</button></div>
           <div class="ph">面试反馈打标累计形成能力图谱。</div>
         </div>
-                <div class="card" style="grid-column:1/-1;"><h3>☁️ 多端同步（手机/电脑，GitHub Gist）</h3>
+                <div class="card sync-card" style="grid-column:1/-1;order:1;"><h3>☁️ 多端同步（手机/电脑，GitHub Gist）</h3>
           <div class="ph">基于 GitHub Gist + 个人访问令牌（Token）。数据存放在一个<strong>私有 Gist</strong> 文件 <code>ajhc_data_backup.json</code>；demo 版与纯净版<strong>各自独立</strong>（不同 Token、互不串数据），本机数据改动会每 <strong>1 小时</strong> 自动上传一次；不到 1 小时急着同步，可点下方「立即上传」手动触发合并。Token 仅存你本机浏览器，<strong>不会</strong>进入备份文件。</div>
 
           <details style="margin-top:10px;border:1px solid #e5e7eb;border-radius:10px;padding:10px;">
@@ -1072,7 +1081,7 @@
 
 
 
-        <div class="card" style="grid-column:1/-1;"><h3>📤 数据导出</h3>
+        <div class="card" style="grid-column:1/-1;order:3;"><h3>📤 数据导出</h3>
           <div class="mini">各数据独立下载，按需自由选择；支持 CSV 与 Excel（.xlsx）。简历数据不导出。</div>
           <div style="display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px;">
             <button class="btn" onclick="exportAllXlsx()">💾 一键全量备份（多 Sheet Excel）</button>
@@ -1089,7 +1098,7 @@
 <div class="modal-bg" id="createModal">
   <div class="modal">
     <div class="modal-hd">
-      <h3>＋ 新建 Job Application</h3>
+      <h3 id="createModalTitle">＋ 新建 Job Application</h3>
       <span class="x" onclick="closeCreate()">✕</span>
     </div>
     <div class="modal-bd">
@@ -1159,7 +1168,7 @@
     </div>
     <div class="modal-ft">
       <button class="btn ghost" onclick="closeCreate()">取消</button>
-      <button class="btn" onclick="saveJob()">保存（自动设为「已投递」）</button>
+      <button class="btn" id="saveJobBtn" onclick="saveJob()">保存（自动设为「已投递」）</button>
     </div>
   </div>
 </div>
@@ -1796,8 +1805,8 @@ ${tlText}
   }
 }
 function pushTimelineEvent(j,evt){ if(!j.timeline) j.timeline=[]; j.timeline.push(evt); }
-function showAddTimeline(id){ $('tlForm').style.display='block'; $('tlDate').value=todayStr(); initTlWeakSelect(); }
-function hideAddTimeline(){ $('tlForm').style.display='none'; $('tlStage').value=''; $('tlDate').value=''; $('tlNote').value=''; $('tlWeakInput').value=''; tlSelectedTags=[]; renderTlWeakSelected(); }
+function showAddTimeline(id){ $('tlForm').style.display='block'; $('tlDate').value=todayStr(); autoResize($('tlStage')); autoResize($('tlNote')); initTlWeakSelect(); }
+function hideAddTimeline(){ $('tlForm').style.display='none'; $('tlStage').value=''; $('tlDate').value=''; $('tlNote').value=''; autoResize($('tlStage')); autoResize($('tlNote')); $('tlWeakInput').value=''; tlSelectedTags=[]; renderTlWeakSelected(); }
 function initTlWeakSelect(){ renderTlWeakSelected(); $('tlWeakOptions').style.display='none'; $('tlWeakOptions').innerHTML=''; }
 function filterTlWeak(){
   const q=($('tlWeakInput').value||'').toLowerCase();
@@ -1878,9 +1887,9 @@ function openDetail(id){
             <div class="timeline">${renderTimeline(j)}</div>
             <button class="btn sm" style="margin-top:8px;" onclick="showAddTimeline(${j.id})">＋ 添加阶段/反馈</button>
             <div id="tlForm" style="display:none;margin-top:10px;">
-              <label>阶段名称</label><input type="text" id="tlStage" placeholder="如 面试中 / HR面 / 业务面 / 二面 / Offer">
+              <label>阶段名称</label><textarea class="tl-form-text" id="tlStage" rows="1" placeholder="如 面试中 / HR面 / 业务面 / 二面 / Offer" oninput="autoResize(this)"></textarea>
               <label>日期</label><input type="date" id="tlDate">
-              <label>备注</label><input type="text" id="tlNote" placeholder="如：被追问数据口径">
+              <label>备注</label><textarea class="tl-form-text" id="tlNote" rows="2" placeholder="如：被追问数据口径；支持多行内容" oninput="autoResize(this)"></textarea>
               <label style="display:block;margin-top:8px;margin-bottom:6px;">弱项标签（可搜索，可多选）</label>
               <div class="search-select" id="tlWeakSelect">
                 <div class="ss-selected" id="tlWeakSelected"></div>
@@ -1897,10 +1906,13 @@ function openDetail(id){
         </aside>
       </div>
     </div>
-    <button class="detail-del-fab" onclick="deleteJob(${j.id})" title="删除此职位">
-      <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V9c0-.55-.45-1-1-1h-2V6c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H7c-.55 0-1 .45-1 1v10zM10 6h4v2h-4V6z"/></svg>
-      删除此职位
-    </button>`;
+    <div class="detail-action-fabs">
+      <button class="detail-edit-fab" onclick="openEditJob(${j.id})" title="编辑此职位">✏️ 编辑此职位</button>
+      <button class="detail-del-fab" onclick="deleteJob(${j.id})" title="删除此职位">
+        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V9c0-.55-.45-1-1-1h-2V6c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H7c-.55 0-1 .45-1 1v10zM10 6h4v2h-4V6z"/></svg>
+        删除此职位
+      </button>
+    </div>`;
   window.scrollTo(0,0);
   initTlWeakSelect();
   const pd=$('parkDock'); if(pd) pd.style.display='none';
@@ -1908,17 +1920,53 @@ function openDetail(id){
 function backToList(){ $('appsDetailView').style.display='none'; $('appsListView').style.display='block'; refreshPark(); }
 
 /* ============ 新建 / 解析 ============ */
+const CREATE_DRAFT_KEY='ajhc_create_job_draft';
+let editingJobId=null;
+const CREATE_FIELD_IDS=['f_company','f_role','f_salary','f_city','f_industry','f_source','f_link','f_keywords','f_duties','f_reqs','f_exp','f_edu','jdInput'];
+function saveCreateDraft(){
+  if(editingJobId!=null || !$('createModal').classList.contains('show')) return;
+  const data={};
+  CREATE_FIELD_IDS.forEach(id=>{ const el=$(id); if(el) data[id]=el.value; });
+  try{ localStorage.setItem(CREATE_DRAFT_KEY, JSON.stringify(data)); }catch(e){}
+}
+function restoreCreateDraft(){
+  try{
+    const data=JSON.parse(localStorage.getItem(CREATE_DRAFT_KEY)||'null');
+    if(!data) return false;
+    CREATE_FIELD_IDS.forEach(id=>{ const el=$(id); if(el && data[id]!=null){ el.value=data[id]; if(el.tagName==='TEXTAREA') autoResize(el); } });
+    return true;
+  }catch(e){ return false; }
+}
+function clearCreateDraft(){ try{ localStorage.removeItem(CREATE_DRAFT_KEY); }catch(e){} }
 function clearCreateForm(){
   ['f_company','f_role','f_salary','f_city','f_industry','f_source','f_link','f_keywords','f_duties','f_reqs'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.value=''; if(el.tagName==='TEXTAREA') autoResize(el); } });
   ['f_exp','f_edu'].forEach(id=>{ const el=document.getElementById(id); if(el) el.selectedIndex=0; });
 }
-function openCreate(){ $('createModal').classList.add('show'); clearCreateForm(); switchTab('text'); }
+function setCreateModalMode(isEdit){
+  $('createModalTitle').textContent=isEdit?'✏️ 编辑 Job Application':'＋ 新建 Job Application';
+  $('saveJobBtn').textContent=isEdit?'保存修改':'保存（自动设为「已投递」）';
+  $('createModal').classList.toggle('editing-job', !!isEdit);
+}
+function openCreate(){
+  editingJobId=null; setCreateModalMode(false); $('createModal').classList.add('show'); document.body.classList.add('create-open');
+  if(!restoreCreateDraft()) clearCreateForm();
+  switchTab('text');
+}
+function openEditJob(id){
+  const j=jobs.find(x=>x.id===id); if(!j) return;
+  editingJobId=id; setCreateModalMode(true); clearCreateForm();
+  fillFormFromParsed({...j, duties:(j.duties||[]).join('\n'), reqs:(j.reqs||[]).join('\n'), keywords:(j.keywords||[]).join(',')});
+  $('createModal').classList.add('show'); document.body.classList.add('create-open'); switchTab('text');
+}
 function closeCreate(){
+  if(editingJobId==null && !window.__savingJob) saveCreateDraft();
   $('createModal').classList.remove('show');
+  document.body.classList.remove('create-open');
   $('parseHint').textContent=''; $('shotHint').textContent='';
   shotFiles=[]; renderShotList();
 }
 $('createModal').addEventListener('click',e=>{ if(e.target.id==='createModal') closeCreate(); });
+CREATE_FIELD_IDS.forEach(id=>{ const el=$(id); if(el){ el.addEventListener('input',saveCreateDraft); el.addEventListener('change',saveCreateDraft); } });
 
 /* ---------- 标签页切换 ---------- */
 function switchTab(tab){
@@ -2303,6 +2351,7 @@ async function parseUrl(url, src){
       r.source = r.source || src || detectSourceByText(text) || detectSourceByUrl(url);
       fillFormFromParsed(r);
       await applyCompanyEnrichment(r);
+      saveCreateDraft();
       if(isEmptyParsed(r)){
         $('parseHint').textContent='⚠️ 已抓取页面但未能提取出有效字段，请直接粘贴 JD 文本或上传职位截图。';
       }else{
@@ -2324,6 +2373,7 @@ async function parseUrl(url, src){
         r.source = r.source || src || detectSourceByUrl(url);
         fillFormFromParsed(r);
         await applyCompanyEnrichment(r);
+        saveCreateDraft();
         $('parseHint').textContent='✓ AI 已根据链接推断并填充，可修改后保存（若内容不符，请粘贴 JD 文本或截图）';
         return;
       }
@@ -2338,6 +2388,7 @@ async function parseUrl(url, src){
   }else{
     $('parseHint').textContent='⚠️ 无法抓取该链接（'+(lastErr&&lastErr.message?lastErr.message:lastErr)+'）。该站点可能禁止自动化抓取，建议直接粘贴 JD 文本，或切换「截图」页上传职位截图由 AI 视觉解析。';
   }
+  saveCreateDraft();
 }
 /* ---------- JD 文本解析（PRD §4.5） ---------- */
 async function parseJD(){
@@ -2367,9 +2418,11 @@ async function parseJD(){
       return;
     }
 
-    // 3. AI 解析优先（联网且配置完整时）
+    // 3. 先用规则提取；公司、职位、经验、学历或职责/要求缺失时，再自动调用已配置的 AI 补全。
+    const f = extractJDFields(jdText);
     let aiUsed=false;
-    if(aiReady()){
+    const needAi=['company','role','exp','edu','duties','reqs'].some(k=>!f[k] || (Array.isArray(f[k]) && !f[k].length));
+    if(needAi && aiReady()){
       try{
         const aiResult = await aiParseJD(jdText, r.link);
         if(!isEmptyParsed(aiResult)){
@@ -2385,7 +2438,6 @@ async function parseJD(){
     }
 
     // 4. 规则兜底 / 补全 AI 缺失字段（AI 字段优先，规则补缺口）
-    const f = extractJDFields(jdText);
     ['company','role','salary','city','exp','edu','industry','source','keywords','duties','reqs'].forEach(k=>{
       if(!r[k] && f[k]) r[k]=f[k];
       else if(Array.isArray(r[k]) && Array.isArray(f[k]) && r[k].length===0 && f[k].length>0) r[k]=f[k];
@@ -2394,6 +2446,7 @@ async function parseJD(){
     if(!r.source) r.source = detectSourceByText(jdText);
     fillFormFromParsed(r);
     await applyCompanyEnrichment(r);
+    saveCreateDraft();
     if(isEmptyParsed(r)){
       $('parseHint').textContent='⚠️ 未能从文本中解析出有效职位字段，请检查粘贴内容是否完整，或切换到「截图」页上传职位截图。';
     }else{
@@ -2613,6 +2666,7 @@ async function parseShots(){
     }
     fillFormFromParsed(r);
     await applyCompanyEnrichment(r);
+    saveCreateDraft();
     $('shotHint').textContent='✓ 截图已通过 AI 视觉解析并填充，可修改后保存';
     switchTab('text');
   }catch(e){
@@ -2659,23 +2713,35 @@ function saveJob(){
         salary=$('f_salary').value.trim(), source=$('f_source').value;
   if(!company||!role||!salary||!source){ toast('公司 / 职位 / 薪资 / 来源 为必填'); return; }
   const today=new Date().toISOString().slice(0,10);
-  const j={ id:++jobSeq, company, role, salary, source,
+  const fields={ company, role, salary, source,
     city:$('f_city').value.trim(), industry:$('f_industry').value.trim(),
     exp:$('f_exp').value, edu:$('f_edu').value,
     keywords:$('f_keywords').value.split(',').map(s=>s.trim()).filter(Boolean),
-    stage:'已投递', applyDate:today, link:$('f_link').value.trim(),
+    link:$('f_link').value.trim(),
     duties:cleanListText($('f_duties').value).split('\n').map(s=>s.trim()).filter(Boolean),
     reqs:cleanListText($('f_reqs').value).split('\n').map(s=>s.trim()).filter(Boolean) };
-  jobs.unshift(j);
-  j.resumeId=defaultResumeId; j.match=computeMatch(j, getResume(defaultResumeId));
-  j.timeline=[{type:'create', stage:'已投递', date:today}];
+  const existing=editingJobId!=null ? jobs.find(x=>x.id===editingJobId) : null;
+  let j;
+  if(existing){
+    Object.assign(existing, fields);
+    j=existing;
+    j.match=computeMatch(j, getResume(j.resumeId||defaultResumeId));
+  }else{
+    j={ id:++jobSeq, ...fields, stage:'已投递', applyDate:today };
+    jobs.unshift(j);
+    j.resumeId=defaultResumeId; j.match=computeMatch(j, getResume(defaultResumeId));
+    j.timeline=[{type:'create', stage:'已投递', date:today}];
+  }
+  editingJobId=null; clearCreateDraft(); window.__savingJob=true;
   closeCreate();
+  window.__savingJob=false;
   // 重置表单与截图列表
   ['f_company','f_role','f_salary','f_city','f_industry','f_keywords','f_duties','f_reqs','f_link','jdInput'].forEach(id=>{ const el=$(id); if(el){ el.value=''; if(el.tagName==='TEXTAREA') autoResize(el); } });
   $('f_exp').value='不限'; $('f_edu').value='不限'; $('f_source').value='内推';
   shotFiles=[]; renderShotList();
   renderJobs(); saveJobsLS();
-  toast('✓ 已创建 Job（阶段：已投递，投递日期：'+today+'）');
+  toast(existing?'✓ Job 信息已更新':'✓ 已创建 Job（阶段：已投递，投递日期：'+today+'）');
+  if(existing) openDetail(j.id);
 }
 
 /* ============ Home 渲染 ============ */
@@ -3119,6 +3185,18 @@ function topWeak(n){ return Object.entries(weakCounts()).sort((a,b)=>b[1]-a[1]).
 
 /* ---------- 通用 ---------- */
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); URL.revokeObjectURL(a.href); }
+// 重渲染前记录滚动位置，渲染后还原，避免卡片收起/删除导致下方内容（如面试锦囊）被顶进视口
+function preserveScroll(fn){ const x=window.scrollX, y=window.scrollY; try{ fn(); }finally{ window.scrollTo(x,y); } }
+/* 保存/收起前，记录刚编辑卡片标题的绝对页面坐标；重渲染后直接回到该标题。 */
+function keepItemAnchor(containerId, id, fn){
+  const before = document.querySelector('#'+containerId+' .story-card[data-id="'+id+'"]');
+  const title = before ? (before.querySelector('.sc-title-input, .sc-title') || before) : null;
+  const targetTop = title
+    ? Math.max(0, window.scrollY + title.getBoundingClientRect().top - 110)
+    : window.scrollY;
+  fn();
+  window.scrollTo({top:targetTop, behavior:'auto'});
+}
 
 /* ============ 行为面试题库 ============ */
 let expandedBrainId=null;
@@ -3152,10 +3230,10 @@ function renderBrainBank(){
   }
 }
 function expandBrain(id){ expandedBrainId=id; renderBrainBank(); }
-function collapseBrain(){ expandedBrainId=null; renderBrainBank(); }
+function collapseBrain(){ const id=expandedBrainId; saveBrain(id); keepItemAnchor('brainBank', id, ()=>{ expandedBrainId=null; renderBrainBank(); }); }
 function saveBrain(qid){ const q=brainQ.find(x=>x.id==qid); if(!q) return; const t=$('qTitle'+qid); if(t) q.q=t.value.trim(); const v=$('ans'+qid); if(v) q.ans=v.value.trim(); saveBrainLS(); }
 function saveAns(qid){ saveBrain(qid); }
-function removeQ(qid){ brainQ=brainQ.filter(x=>x.id!=qid); if(expandedBrainId===qid) expandedBrainId=null; renderBrainBank(); saveBrainLS(); }
+function removeQ(qid){ brainQ=brainQ.filter(x=>x.id!=qid); if(expandedBrainId===qid) expandedBrainId=null; preserveScroll(renderBrainBank); saveBrainLS(); }
 function addQ(){ const v=$('newQ').value.trim(); if(!v){ toast('请输入真题'); return; } const id=++brainSeq; brainQ.push({id, q:v, weak:[], ans:''}); $('newQ').value=''; expandedBrainId=id; renderBrainBank(); saveBrainLS(); toast('已新增'); }
 
 /* ============ Interview Hub ============ */
@@ -4279,10 +4357,10 @@ function renderStarList(){
   }
 }
 function expandStar(id){ expandedStarId=id; renderStarList(); }
-function collapseStar(){ expandedStarId=null; renderStarList(); }
+function collapseStar(){ const id=expandedStarId; saveStar(id); keepItemAnchor('starList', id, ()=>{ expandedStarId=null; renderStarList(); }); }
 function addStar(){ const v=$('starTitle').value.trim(); if(!v){ toast('请输入经历标题'); return; } const id=++starSeq; starStories.push({id, title:v, story:''}); $('starTitle').value=''; expandedStarId=id; renderStarList(); saveStarLS(); }
 function saveStar(id){ const s=starStories.find(x=>x.id==id); if(!s) return; const t=$('starTitle'+id); if(t) s.title=t.value.trim(); const v=$('star'+id); if(v) s.story=v.value; saveStarLS(); }
-function removeStar(id){ starStories=starStories.filter(x=>x.id!=id); if(expandedStarId===id) expandedStarId=null; renderStarList(); saveStarLS(); }
+function removeStar(id){ starStories=starStories.filter(x=>x.id!=id); if(expandedStarId===id) expandedStarId=null; preserveScroll(renderStarList); saveStarLS(); }
 
 /* ============ Settings ============ */
 function renderSettings(){
@@ -4802,7 +4880,9 @@ async function getOrCreateGistId(){
     method:'POST',
     body:JSON.stringify({ description:'AI Job Hunting Coach Data Sync', public:false, files:{ [GIST_FILENAME]:{ content:JSON.stringify(initialData,null,2) } } })
   });
-  cfg.gistId=newGist.id; saveGistCfg(cfg); return newGist.id;
+  cfg.gistId=newGist.id; saveGistCfg(cfg);
+  __lastPushedData=JSON.stringify(initialData,null,2);
+  return newGist.id;
 }
 
 async function gistPull(){
@@ -4846,7 +4926,11 @@ async function gistPush(){
     const gistId=await getOrCreateGistId();
     const localData=readMigrationData();
     const content=JSON.stringify(localData,null,2);
-    if(content===__lastPushedData){ __gistSynced=true; return true; } // 数据未变，避免无意义请求触发限流
+    if(content===__lastPushedData){
+      __gistSynced=true;
+      gistStatus('没有新的修改需要上传，当前数据已同步。', true);
+      return true;
+    } // 数据未变，避免无意义请求触发限流
     await gistApiFetch('/gists/'+gistId, {
       method:'PATCH',
       body:JSON.stringify({ files:{ [GIST_FILENAME]:{ content:content } } })
@@ -5727,8 +5811,8 @@ function renderInsights(){
     const bars=months.map(m=>`<div class="combo-bar" data-val="${monthData[m].total}" style="height:${Math.max(4, Math.round(monthData[m].total/maxM*100))}%;" title="${m} 投递 ${monthData[m].total}"></div>`).join('');
     const xlabs=months.map(m=>{
       const latest=monthData[m].latestDate||m;
-      const label = months.length===1 ? latest : (latest.slice(5)||m);
-      return `<div class="xlab" title="截至 ${latest}">${esc(label)}</div>`;
+      const label = Number(m.split('-')[1]||m)+'月';
+      return `<div class="xlab" title="${m}（截至 ${latest}）">${esc(label)}</div>`;
     }).join('');
     const labels=replyRates.map((r,i)=>{
       const x=((i+0.5)*step).toFixed(2);
@@ -5739,15 +5823,12 @@ function renderInsights(){
     }).join('');
     trendHtml=`<div class="combo-legend"><span><span class="dot" style="background:var(--indigo)"></span>投递数</span><span><span class="dot" style="background:#e6a23a;border-radius:50%;"></span>整体回复率 %</span></div>
       <div class="combo-wrap">
-        <div class="combo-axis-y"><span>${maxM}</span><span>${Math.round(maxM*0.75)}</span><span>${Math.round(maxM*0.5)}</span><span>${Math.round(maxM*0.25)}</span><span>0</span></div>
-        <div class="combo-plot">
-          <div class="combo-grid"><div class="gline"></div><div class="gline"></div><div class="gline"></div><div class="gline"></div><div class="gline"></div></div>
+        <div class="combo-plot" style="margin-left:0;">
           <div class="combo-bars">${bars}</div>
           <div class="combo-line"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="#e6a23a" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>${labels}</svg></div>
         </div>
-        <div class="combo-axis-y right"><span>${maxR}%</span><span>${Math.round(maxR*0.75)}%</span><span>${Math.round(maxR*0.5)}%</span><span>${Math.round(maxR*0.25)}%</span><span>0%</span></div>
       </div>
-      <div class="combo-x">${xlabs}</div>`;
+      <div class="combo-x" style="padding-left:0;">${xlabs}</div>`;
   }
 
   // 复盘洞察与弱项
