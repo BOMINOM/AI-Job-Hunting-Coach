@@ -419,6 +419,7 @@
   .tl-note { display:inline-block; max-width:100%; padding:1px 6px; border-radius:5px; border:1px dashed transparent; cursor:text; line-height:1.5; word-break:break-word; }
   .tl-note:hover { background:#eef2ff; border-color:#c7d2fe; }
   .tl-note.empty { color:#9ca3af; font-style:italic; }
+  .tl-note { white-space:pre-wrap; }
   .tl-note-edit { min-width:180px; max-width:100%; padding:4px 8px; border:1px solid var(--accent); border-radius:6px; font-size:11.5px; line-height:1.5; color:var(--ink); background:#fff; resize:vertical; }
   .tl-tags { display:inline-flex; flex-wrap:wrap; gap:4px; cursor:pointer; padding:1px 4px; border-radius:5px; border:1px dashed transparent; }
   .tl-tags:hover { background:#fff7ed; border-color:#fed7aa; }
@@ -444,6 +445,15 @@
   .inline-tag-editor .its-option:hover { background:#eef2ff; }
   .inline-tag-editor .its-actions { display:flex; gap:6px; margin-top:6px; }
   .inline-tag-editor .its-actions button { font-size:12px; padding:4px 10px; }
+  .tag-multi-dropdown { margin-top:6px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  .tag-multi-dropdown summary { cursor:pointer; padding:8px 10px; font-size:12px; color:var(--soft); }
+  .tag-multi-options { max-height:170px; overflow:auto; padding:4px 10px 8px; border-top:1px solid #eef0f4; }
+  .tag-multi-option { width:100%; min-height:38px; padding:0 8px; border:0; border-radius:7px; display:flex; align-items:center; justify-content:space-between; background:transparent; color:var(--ink); font:inherit; font-size:12px; text-align:left; cursor:pointer; }
+  .tag-multi-option:hover { background:#f5f3ff; }
+  .tag-multi-option.selected { background:#f1efff; color:#5b45d6; }
+  .tag-multi-option .tag-check { width:18px; text-align:center; color:#6d50e8; font-size:16px; font-weight:700; opacity:0; }
+  .tag-multi-option.selected .tag-check { opacity:1; }
+  .tag-multi-actions { border-top:1px solid #eef0f4; padding:12px 10px 10px; margin-top:2px; }
   #jdInput { min-height:100px; }
   .ai-summary-card { margin-top:16px; }
   .ai-summary-card h4 { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
@@ -1517,13 +1527,15 @@ function updateTimelineDate(jobId, tlIdx, stage, newDate){
 
 /* Timeline 备注再次编辑 */
 function editTimelineNote(jobId, tlIdx, stage, el){
-  const val=el.getAttribute('data-note')||'';
+  // 直接读取已显示的文本，避免 HTML 属性规范化掉换行或连续空格。
+  const val=el.classList.contains('empty') ? '' : (el.textContent||'');
   const ta=document.createElement('textarea');
   ta.className='tl-note-edit';
   ta.value=val;
   ta.rows=Math.max(2, Math.min(6, (val.split(/\n/).length||1)));
   ta.onblur=()=>saveTimelineNote(jobId, tlIdx, stage, ta);
-  ta.onkeydown=(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); ta.blur(); } };
+  // Enter 保留为换行；备注内容按用户输入原样保存。
+  ta.onkeydown=(e)=>{ if(e.key==='Escape'){ e.preventDefault(); if($('appsDetailView').style.display!=='none') openDetail(jobId); } };
   el.replaceWith(ta);
   ta.focus();
   ta.select();
@@ -1531,7 +1543,7 @@ function editTimelineNote(jobId, tlIdx, stage, el){
 function saveTimelineNote(jobId, tlIdx, stage, el){
   const j=jobs.find(x=>x.id===jobId); if(!j) return;
   if(!j.timeline) j.timeline=[];
-  const newNote=el.value.trim();
+  const newNote=el.value;
   if(tlIdx>=0 && j.timeline[tlIdx]){
     j.timeline[tlIdx].note=newNote;
   } else {
@@ -1594,15 +1606,30 @@ function editTimelineTags(jobId, tlIdx, stage, el){
   wrap.dataset.jobId=jobId;
   wrap.dataset.tlIdx=tlIdx;
   wrap.dataset.stage=stage;
-  wrap.innerHTML=`<div class="its-selected" id="itsSelected"></div><input class="its-input" id="itsInput" placeholder="搜索弱项标签" oninput="filterInlineTagOptions(this)"><div class="its-options" id="itsOptions"></div><div class="its-actions"><button class="btn sm" onclick="saveInlineTags(this)">保存</button><button class="btn sm ghost" onclick="cancelInlineTags(this)">取消</button></div>`;
+  wrap.innerHTML=`<div class="its-selected" id="itsSelected"></div><details class="tag-multi-dropdown" id="itsDropdown"><summary>从弱项标签词库选择（可多选）</summary><div class="tag-multi-options" id="itsOptions"></div><div class="tag-multi-actions"><button type="button" class="btn sm" onclick="addInlineTagsBatch(this)">添加已选标签</button></div></details><div class="its-actions"><button class="btn sm" onclick="saveInlineTags(this)">保存</button><button class="btn sm ghost" onclick="cancelInlineTags(this)">取消</button></div>`;
   el.replaceWith(wrap);
   wrap._tags=tags.slice();
   renderInlineTagSelected(wrap);
-  setTimeout(()=>wrap.querySelector('#itsInput').focus(), 0);
+  renderInlineTagDropdown(wrap);
 }
 function renderInlineTagSelected(wrap){
   const tags=wrap._tags||[];
   wrap.querySelector('#itsSelected').innerHTML=tags.length?tags.map(t=>`<span class="chip">${esc(t)}<span class="x" onclick="toggleInlineTag('${esc(t)}', this)" style="margin-left:4px;cursor:pointer;">✕</span></span>`).join(''):'<span class="ph">未选择</span>';
+}
+function renderInlineTagDropdown(wrap){
+  const box=wrap.querySelector('#itsOptions'); if(!box) return;
+  const selected=wrap._tags||[];
+  const choices=abilityTags.filter(t=>!selected.includes(t));
+  box.innerHTML=choices.length?choices.map(t=>`<button type="button" class="tag-multi-option" data-value="${esc(t)}" onclick="toggleTagPick(this)"><span>${esc(t)}</span><span class="tag-check">√</span></button>`).join(''):'<span class="ph">词库中没有可添加的标签</span>';
+}
+function toggleTagPick(btn){ btn.classList.toggle('selected'); btn.setAttribute('aria-pressed', btn.classList.contains('selected')); }
+function addInlineTagsBatch(btn){
+  const wrap=btn.closest('.inline-tag-editor');
+  const chosen=[...wrap.querySelectorAll('#itsOptions .tag-multi-option.selected')].map(item=>item.dataset.value);
+  if(!chosen.length){ toast('请先选择弱项标签'); return; }
+  chosen.forEach(tag=>{ if(!wrap._tags.includes(tag)) wrap._tags.push(tag); });
+  renderInlineTagSelected(wrap); renderInlineTagDropdown(wrap);
+  wrap.querySelector('#itsDropdown').open=false;
 }
 function filterInlineTagOptions(input){
   const wrap=input.closest('.inline-tag-editor');
@@ -1624,9 +1651,8 @@ function selectInlineTag(tag, el){
 function toggleInlineTag(tag, el){
   const wrap=el.closest('.inline-tag-editor');
   wrap._tags=wrap._tags.filter(x=>x!==tag);
-  const input=wrap.querySelector('#itsInput');
-  filterInlineTagOptions(input);
   renderInlineTagSelected(wrap);
+  renderInlineTagDropdown(wrap);
 }
 function saveInlineTags(btn){
   const wrap=btn.closest('.inline-tag-editor');
@@ -1806,8 +1832,21 @@ ${tlText}
 }
 function pushTimelineEvent(j,evt){ if(!j.timeline) j.timeline=[]; j.timeline.push(evt); }
 function showAddTimeline(id){ $('tlForm').style.display='block'; $('tlDate').value=todayStr(); autoResize($('tlStage')); autoResize($('tlNote')); initTlWeakSelect(); }
-function hideAddTimeline(){ $('tlForm').style.display='none'; $('tlStage').value=''; $('tlDate').value=''; $('tlNote').value=''; autoResize($('tlStage')); autoResize($('tlNote')); $('tlWeakInput').value=''; tlSelectedTags=[]; renderTlWeakSelected(); }
-function initTlWeakSelect(){ renderTlWeakSelected(); $('tlWeakOptions').style.display='none'; $('tlWeakOptions').innerHTML=''; }
+function hideAddTimeline(){ $('tlForm').style.display='none'; $('tlStage').value=''; $('tlDate').value=''; $('tlNote').value=''; autoResize($('tlStage')); autoResize($('tlNote')); tlSelectedTags=[]; renderTlWeakSelected(); }
+function initTlWeakSelect(){
+  const box=$('tlWeakOptions');
+  if(box){ const choices=abilityTags.filter(t=>!tlSelectedTags.includes(t)); box.innerHTML=choices.length?choices.map(t=>`<button type="button" class="tag-multi-option" data-value="${esc(t)}" onclick="toggleTagPick(this)"><span>${esc(t)}</span><span class="tag-check">√</span></button>`).join(''):'<span class="ph">没有可添加的标签</span>'; }
+  renderTlWeakSelected();
+}
+function addTlWeakBatch(){
+  const box=$('tlWeakOptions');
+  const chosen=box?[...box.querySelectorAll('.tag-multi-option.selected')].map(item=>item.dataset.value):[];
+  if(!chosen.length){ toast('请先选择弱项标签'); return; }
+  chosen.forEach(tag=>{ if(!tlSelectedTags.includes(tag)) tlSelectedTags.push(tag); });
+  renderTlWeakSelected();
+  if($('tlWeakDropdown')) $('tlWeakDropdown').open=false;
+  initTlWeakSelect();
+}
 function filterTlWeak(){
   const q=($('tlWeakInput').value||'').toLowerCase();
   if(!q){ $('tlWeakOptions').style.display='none'; $('tlWeakOptions').innerHTML=''; return; }
@@ -1815,7 +1854,7 @@ function filterTlWeak(){
   $('tlWeakOptions').style.display = opts.length?'block':'none';
   $('tlWeakOptions').innerHTML = opts.map(t=>`<div class="ss-option" onclick="toggleTlWeak('${esc(t)}')">${esc(t)}</div>`).join('');
 }
-function toggleTlWeak(tag){ if(tlSelectedTags.includes(tag)) tlSelectedTags=tlSelectedTags.filter(x=>x!==tag); else tlSelectedTags.push(tag); filterTlWeak(); renderTlWeakSelected(); }
+function toggleTlWeak(tag){ if(tlSelectedTags.includes(tag)) tlSelectedTags=tlSelectedTags.filter(x=>x!==tag); else tlSelectedTags.push(tag); renderTlWeakSelected(); }
 function renderTlWeakSelected(){ $('tlWeakSelected').innerHTML=tlSelectedTags.map(t=>`<span class="chip">${esc(t)}<span class="x" onclick="toggleTlWeak('${esc(t)}')" style="margin-left:4px;cursor:pointer;">✕</span></span>`).join('') || '<span class="ph">未选择</span>'; }
 function saveTimelineEvent(id){
   const j=jobs.find(x=>x.id===id); if(!j) return;
@@ -1826,7 +1865,7 @@ function saveTimelineEvent(id){
   if(isMain && j.stage!==stage){
     applyStageMove(j, stage, date);
   } else {
-    pushTimelineEvent(j,{type:isMain?'stage':'interview', stage, date, note:$('tlNote').value.trim(), tags:tlSelectedTags.slice(), anchor:isMain?undefined:j.stage});
+    pushTimelineEvent(j,{type:isMain?'stage':'interview', stage, date, note:$('tlNote').value, tags:tlSelectedTags.slice(), anchor:isMain?undefined:j.stage});
   }
   hideAddTimeline(); renderJobs(); saveJobsLS(); openDetail(id);
   toast('已添加阶段/反馈，并回写题库');
@@ -1890,12 +1929,9 @@ function openDetail(id){
               <label>阶段名称</label><textarea class="tl-form-text" id="tlStage" rows="1" placeholder="如 面试中 / HR面 / 业务面 / 二面 / Offer" oninput="autoResize(this)"></textarea>
               <label>日期</label><input type="date" id="tlDate">
               <label>备注</label><textarea class="tl-form-text" id="tlNote" rows="2" placeholder="如：被追问数据口径；支持多行内容" oninput="autoResize(this)"></textarea>
-              <label style="display:block;margin-top:8px;margin-bottom:6px;">弱项标签（可搜索，可多选）</label>
-              <div class="search-select" id="tlWeakSelect">
-                <div class="ss-selected" id="tlWeakSelected"></div>
-                <input class="ss-input" id="tlWeakInput" placeholder="输入搜索弱项标签" oninput="filterTlWeak()">
-                <div class="ss-options" id="tlWeakOptions"></div>
-              </div>
+              <label style="display:block;margin-top:8px;margin-bottom:6px;">弱项标签（从词库选择，可多选）</label>
+              <div class="ss-selected" id="tlWeakSelected"></div>
+              <details class="tag-multi-dropdown" id="tlWeakDropdown"><summary>从弱项标签词库选择（可多选）</summary><div class="tag-multi-options" id="tlWeakOptions"></div><div class="tag-multi-actions"><button type="button" class="btn sm" onclick="addTlWeakBatch()">添加已选标签</button></div></details>
               <div style="display:flex;gap:8px;margin-top:8px;">
                 <button class="btn sm" onclick="saveTimelineEvent(${j.id})">保存</button>
                 <button class="btn sm ghost" onclick="hideAddTimeline()">取消</button>
@@ -6673,6 +6709,7 @@ function renderRealQuestions(){
     <div style="margin-bottom:16px;">
       <div style="font-size:13px;font-weight:700;color:#1f2937;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span class="pill st-on">${esc(g.key)}</span><span class="export-count">${g.items.length} 题</span>
+        <button class="btn sm ghost" data-role="${esc(g.items[0].role||'')}" data-company="${esc(g.items[0].company||'')}" onclick="openAddQuestion(this.dataset.role,this.dataset.company)">＋ 为此职位新增真题</button>
       </div>
       <div style="padding-left:10px;border-left:3px solid #c7d2fe;">
         ${g.items.map(qItem).join('')}
@@ -6695,7 +6732,11 @@ function saveEditQuestion(){
 }
 function removeRealQ(id){ realQuestions=realQuestions.filter(x=>x.id!==id); saveReviewLS(); renderRealQuestions(); toast('已删除'); }
 /* 手动新增真题到真题库 */
-function openAddQuestion(){ $('addQText').value=''; $('addQAnswer').value=''; $('addQPurpose').value=''; $('addQModel').value=''; $('addQRole').value=''; $('addQCompany').value=''; $('addQuestionModal').style.display='flex'; }
+function openAddQuestion(role='', company=''){
+  $('addQText').value=''; $('addQAnswer').value=''; $('addQPurpose').value=''; $('addQModel').value='';
+  $('addQRole').value=role||''; $('addQCompany').value=company||'';
+  $('addQuestionModal').style.display='flex';
+}
 function closeAddQuestion(){ $('addQuestionModal').style.display='none'; }
 function saveAddQuestion(){
   const q=($('addQText').value||'').trim();
