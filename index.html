@@ -500,6 +500,10 @@
   .resize-handle::after { content:''; position:absolute; right:2px; bottom:2px; width:6px; height:6px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; border-radius:0 0 2px 0; opacity:.45; }
   .cheat-chip:hover .resize-handle { opacity:1; }
   .cheat-chip .preset-chk { position:absolute; left:8px; top:50%; transform:translateY(-50%); margin:0; cursor:pointer; }
+  @media (max-width:900px){
+    #m-hub .cheat-chip { max-width:calc(100% - 12px); white-space:normal; }
+    #m-hub .cheat-chip .ctxt { white-space:normal; overflow-wrap:anywhere; }
+  }
   /* 尺寸等级（重要/JD命中 更大）—— 词云大小对比 */
   .chip-xs { font-size:11px; padding:3px 8px; }
   .chip-sm { font-size:13px; padding:4px 10px; }
@@ -751,8 +755,14 @@
   .story-card .sc-actions span:hover { color:var(--indigo); }
   .story-card .sc-preview { color:var(--soft); font-size:12.5px; margin-top:5px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   #starList, #brainBank { overflow-anchor:none; }
-  .story-card.expanded input.sc-title-input { width:100%; font-weight:700; font-size:13px; padding:8px 10px; margin-bottom:6px; border:1px solid #e6ecff; border-radius:8px; box-sizing:border-box; scroll-margin-top:84px; }
-  .story-card.expanded textarea { width:100%; min-height:80px; margin-top:6px; border:1px solid #e6ecff; border-radius:8px; padding:8px 10px; line-height:1.55; box-sizing:border-box; }
+  .story-card.expanded .sc-title-input { width:100%; min-height:46px; font-weight:700; font-size:13px; padding:8px 10px; margin-bottom:6px; border:1px solid #e6ecff; border-radius:8px; box-sizing:border-box; resize:vertical; white-space:pre-wrap; overflow-wrap:anywhere; scroll-margin-top:84px; }
+  .rich-editor-wrap { margin-top:6px; border:1px solid #e6ecff; border-radius:8px; overflow:hidden; background:#fff; }
+  .rich-toolbar { display:flex; flex-wrap:wrap; gap:5px; padding:6px; border-bottom:1px solid #edf0fb; background:#fafbff; }
+  .rich-tool { min-width:28px; height:26px; padding:0 7px; border:1px solid #e0e5f4; border-radius:5px; background:#fff; color:#4e5d7b; font-size:12px; font-weight:700; cursor:pointer; }
+  .rich-tool.color-red { color:#d85263; } .rich-tool.color-blue { color:#4f78cf; } .rich-tool.color-green { color:#388c74; } .rich-tool.color-purple { color:#7456ca; }
+  .rich-editor { min-height:92px; padding:9px 10px; outline:none; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.6; font-size:13px; }
+  .rich-editor:empty:before { content:attr(data-placeholder); color:#9ca3af; pointer-events:none; }
+  .rich-display { white-space:pre-wrap; overflow-wrap:anywhere; }
   .story-card .sc-save-row { display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
 
   .tag-lv { margin-bottom:12px; }
@@ -916,10 +926,10 @@
             <h3>📋 面试锦囊 Cheat Sheet</h3>
             <div class="hub-jobsel"><label>视图</label><select id="cheatCtxSel" onchange="setCheatCtx()"></select></div>
           </div>
-          <p class="ph">上场前一瞥的浓缩速查：每个岗位独立维护一份面试锦囊，按 JD 关键词命中优先展示。输入框支持每行一个关键词/短语批量添加；一行内如需多个关键词可用逗号分隔，连在一起的短语会作为一个气泡整体保留（不再因字数被拆开）。</p>
+          <p class="ph">上场前一瞥的浓缩速查：每个岗位独立维护一份面试锦囊，按 JD 关键词命中优先展示。输入框支持每句一个关键词/短语批量添加；如需一次输入多个，请用句号（。或 .）分隔。</p>
           <div id="cheatSheet"></div>
           <div class="add-row" style="flex-wrap:wrap;gap:8px;">
-            <textarea id="cheatText" placeholder="每行一个关键词/短语；如需一行内放多个，可用逗号分隔" autocomplete="off" style="flex:1 1 180px;min-width:120px;resize:vertical;min-height:36px;max-height:140px;padding:8px 10px;line-height:1.4;"></textarea>
+            <textarea id="cheatText" placeholder="每句一个关键词/短语；如需一次输入多个，请用句号（。或 .）分隔" autocomplete="off" style="flex:1 1 180px;min-width:120px;resize:vertical;min-height:36px;max-height:140px;padding:8px 10px;line-height:1.4;"></textarea>
             <button class="btn sm" id="cheatAddBtn" onclick="addCheat()">＋ 新增</button>
             <button class="btn sm ghost" id="cheatGenBtn" onclick="genCheatAI()">✨ 按 JD 生成</button>
             <button class="btn sm ghost" id="cheatPresetGenBtn" onclick="genPresetKeyDataAI()" style="display:none;">✨ 自动生成关键数据</button>
@@ -1192,10 +1202,10 @@
     </div>
     <div class="modal-bd">
       <input type="hidden" id="editQId">
-      <div><label>面试问题</label><textarea id="editQText" style="width:100%;min-height:80px;"></textarea></div>
-      <div style="margin-top:10px;"><label>我的回答 / 标准回答</label><textarea id="editQAnswer" style="width:100%;min-height:140px;"></textarea></div>
-      <div style="margin-top:10px;"><label>考察目的（可选）</label><textarea id="editQPurpose" style="width:100%;min-height:50px;"></textarea></div>
-      <div style="margin-top:10px;"><label>标准回答参考（可选）</label><textarea id="editQModel" style="width:100%;min-height:80px;"></textarea></div>
+      <div><label>面试问题</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="editQText"></div><div id="editQText" class="rich-editor" contenteditable="true" data-placeholder="填写面试问题"></div></div></div>
+      <div style="margin-top:10px;"><label>我的回答 / 标准回答</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="editQAnswer"></div><div id="editQAnswer" class="rich-editor" contenteditable="true" data-placeholder="填写我的回答"></div></div></div>
+      <div style="margin-top:10px;"><label>考察目的（可选）</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="editQPurpose"></div><div id="editQPurpose" class="rich-editor" contenteditable="true" data-placeholder="填写面试官的考察目的"></div></div></div>
+      <div style="margin-top:10px;"><label>标准回答参考（可选）</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="editQModel"></div><div id="editQModel" class="rich-editor" contenteditable="true" data-placeholder="填写标准回答参考"></div></div></div>
     </div>
     <div class="modal-ft">
       <button class="btn ghost" onclick="closeEditQuestion()">取消</button>
@@ -1212,10 +1222,10 @@
       <span class="x" onclick="closeAddQuestion()">✕</span>
     </div>
     <div class="modal-bd">
-      <div><label>面试问题</label><textarea id="addQText" style="width:100%;min-height:80px;" placeholder="如：请简述你做过最复杂的一个数据迁移项目"></textarea></div>
-      <div style="margin-top:10px;"><label>我的回答 / 标准回答</label><textarea id="addQAnswer" style="width:100%;min-height:140px;" placeholder="可直接粘贴你的实际回答原文"></textarea></div>
-      <div style="margin-top:10px;"><label>考察目的（可选）</label><textarea id="addQPurpose" style="width:100%;min-height:50px;" placeholder="面试官想考察的能力 / 经验"></textarea></div>
-      <div style="margin-top:10px;"><label>标准回答参考（可选）</label><textarea id="addQModel" style="width:100%;min-height:80px;" placeholder="可填写你认为更优的回答作为参考"></textarea></div>
+      <div><label>面试问题</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQText"></div><div id="addQText" class="rich-editor" contenteditable="true" data-placeholder="如：请简述你做过最复杂的一个数据迁移项目"></div></div></div>
+      <div style="margin-top:10px;"><label>我的回答 / 标准回答</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQAnswer"></div><div id="addQAnswer" class="rich-editor" contenteditable="true" data-placeholder="可直接粘贴你的实际回答原文"></div></div></div>
+      <div style="margin-top:10px;"><label>考察目的（可选）</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQPurpose"></div><div id="addQPurpose" class="rich-editor" contenteditable="true" data-placeholder="面试官想考察的能力 / 经验"></div></div></div>
+      <div style="margin-top:10px;"><label>标准回答参考（可选）</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQModel"></div><div id="addQModel" class="rich-editor" contenteditable="true" data-placeholder="可填写你认为更优的回答作为参考"></div></div></div>
       <div class="row2" style="margin-top:10px;">
         <div><label>岗位（可选）</label><input id="addQRole" placeholder="如 HR数字化PM"></div>
         <div><label>公司（可选）</label><input id="addQCompany" placeholder="如 XX集团"></div>
@@ -1236,7 +1246,8 @@
       <span class="x" onclick="closeCheatPresetModal()">✕</span>
     </div>
     <div class="modal-bd">
-      <div class="tm-tip">勾选目标岗位，把当前在「关键数据」视图中选中的条目复制到这些岗位的锦囊中（已存在的文本会跳过）。</div>
+      <div class="tm-tip">默认已全选目标岗位。把当前在「关键数据」视图中选中的条目复制到这些岗位的锦囊中（已存在的文本会跳过）。</div>
+      <button class="btn sm ghost" id="presetSyncToggle" onclick="togglePresetSyncJobs()">一键取消全选</button>
       <div id="presetSyncJobList" style="max-height:320px;overflow:auto;"></div>
     </div>
     <div class="modal-ft">
@@ -1332,7 +1343,7 @@ function setTa(id,val){ const t=$(id); if(!t) return; t.value=val==null?'':Strin
 function appendTa(id,val){ const t=$(id); if(!t) return; const v=(val||'').trim(); if(!v) return; const cur=(t.value||'').trim(); t.value=cur? (cur+'\n\n'+v) : v; autoResize(t); if(id==='reviewText') autoLinkJobFromText(t.value); }
 function initAutoResize(){
   document.addEventListener('input', e=>{ if(e.target.tagName==='TEXTAREA') autoResize(e.target); });
-  window.addEventListener('resize', ()=>{ document.querySelectorAll('textarea').forEach(ta=>{ if(!ta.classList.contains('no-auto-resize')) autoResize(ta); }); });
+  window.addEventListener('resize', ()=>{ document.querySelectorAll('textarea').forEach(ta=>{ if(!ta.classList.contains('no-auto-resize')) autoResize(ta); }); requestAnimationFrame(()=>{ if(typeof layoutAllCheatClouds==='function') layoutAllCheatClouds(); }); });
 }
 
 /* ============ 列表渲染（按阶段看板） ============ */
@@ -3245,6 +3256,49 @@ function pinStoryCard(containerId, id){
 }
 function keepItemAnchor(containerId, id, fn){ fn(); pinStoryCard(containerId, id); }
 
+/* ============ 富文本编辑（加粗 / 斜体 / 颜色 / 字号） ============ */
+function richPlain(v){ const d=document.createElement('div'); d.innerHTML=String(v||''); return d.textContent||''; }
+function richEscape(v){ return esc(String(v||'')).replace(/\n/g,'<br>'); }
+function sanitizeRichHTML(input){
+  const source=document.createElement('div'); source.innerHTML=String(input||'');
+  const out=document.createElement('div');
+  const copy=node=>{
+    if(node.nodeType===Node.TEXT_NODE) return document.createTextNode(node.nodeValue||'');
+    if(node.nodeType!==Node.ELEMENT_NODE) return document.createTextNode('');
+    const tag=node.tagName.toLowerCase();
+    if(tag==='br') return document.createElement('br');
+    const name=(tag==='b'||tag==='strong')?'strong':(tag==='i'||tag==='em')?'em':'span';
+    const clean=document.createElement(name);
+    if(tag==='span'){
+      const color=(node.style.color||'').trim(); const size=(node.style.fontSize||'').trim();
+      if(/^#[0-9a-f]{3,8}$/i.test(color)||/^rgb\(/i.test(color)) clean.style.color=color;
+      if(/^([1-9]|[12][0-9]|3[0-2])px$/.test(size)) clean.style.fontSize=size;
+    }
+    Array.from(node.childNodes).forEach(child=>clean.appendChild(copy(child)));
+    if(tag==='div'||tag==='p'){ const wrap=document.createDocumentFragment(); wrap.appendChild(clean); wrap.appendChild(document.createElement('br')); return wrap; }
+    return clean;
+  };
+  Array.from(source.childNodes).forEach(node=>out.appendChild(copy(node)));
+  return out.innerHTML.replace(/(?:<br>){2,}$/,'');
+}
+function richContent(html, plain){ return html?sanitizeRichHTML(html):richEscape(plain); }
+function richEditorMarkup(id, html, plain, placeholder){ return `<div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="${id}"></div><div id="${id}" class="rich-editor" contenteditable="true" data-placeholder="${esc(placeholder||'输入内容')}">${richContent(html,plain)}</div></div>`; }
+function renderRichToolbars(scope=document){
+  scope.querySelectorAll('.rich-toolbar[data-editor]').forEach(bar=>{
+    if(bar.dataset.ready) return; bar.dataset.ready='1'; const id=bar.dataset.editor;
+    bar.innerHTML=`<button type="button" class="rich-tool" onmousedown="event.preventDefault()" onclick="richApply('${id}','bold')">B</button><button type="button" class="rich-tool" onmousedown="event.preventDefault()" onclick="richApply('${id}','italic')"><i>I</i></button><button type="button" class="rich-tool" onmousedown="event.preventDefault()" onclick="richApply('${id}','size','12px')">A−</button><button type="button" class="rich-tool" onmousedown="event.preventDefault()" onclick="richApply('${id}','size','16px')">A+</button><button type="button" class="rich-tool color-red" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#d85263')">●</button><button type="button" class="rich-tool color-blue" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#4f78cf')">●</button><button type="button" class="rich-tool color-green" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#388c74')">●</button><button type="button" class="rich-tool color-purple" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#7456ca')">●</button>`;
+  });
+}
+function richApply(id, kind, value){
+  const editor=$(id), sel=window.getSelection(); if(!editor||!sel||!sel.rangeCount) return toast('请先选中需要设置格式的文字');
+  const range=sel.getRangeAt(0); if(range.collapsed || !editor.contains(range.commonAncestorContainer)) return toast('请先在文本框中选中需要设置格式的文字');
+  const node=document.createElement(kind==='bold'?'strong':kind==='italic'?'em':'span');
+  if(kind==='color') node.style.color=value; if(kind==='size') node.style.fontSize=value;
+  node.appendChild(range.extractContents()); range.insertNode(node); sel.removeAllRanges(); const next=document.createRange(); next.selectNodeContents(node); sel.addRange(next); editor.focus();
+}
+function getRichEditor(id){ const el=$(id); return el?sanitizeRichHTML(el.innerHTML):''; }
+function setRichEditor(id, html, plain){ const el=$(id); if(el) el.innerHTML=richContent(html,plain); }
+
 /* ============ 行为面试题库 ============ */
 let expandedBrainId=null;
 function renderBrainBank(){
@@ -3253,8 +3307,8 @@ function renderBrainBank(){
     const preview=(q.ans||'').trim()||'（暂无标准答案）';
     if(isOpen){
       return `<div class="story-card expanded" data-id="${q.id}">
-        <input type="text" class="sc-title-input" id="qTitle${q.id}" value="${esc(q.q)}" onblur="saveBrain(${q.id})" placeholder="面试题目">
-        <textarea id="ans${q.id}" onblur="saveBrain(${q.id})" placeholder="填写/编辑标准答案（STAR 结构）">${esc(q.ans||'')}</textarea>
+        <textarea class="sc-title-input" id="qTitle${q.id}" rows="2" onblur="saveBrain(${q.id})" placeholder="面试题目">${esc(q.q)}</textarea>
+        ${richEditorMarkup('ans'+q.id, q.ansRich, q.ans||'', '填写/编辑标准答案（STAR 结构）')}
         <div class="sc-save-row">
           <button class="btn sm" onclick="event.stopPropagation(); collapseBrain()">✓ 保存并收起</button>
           <div class="sc-actions"><span onclick="event.stopPropagation(); removeQ(${q.id})" title="删除此题">✕</span></div>
@@ -3271,14 +3325,11 @@ function renderBrainBank(){
     </div>`;
   }).join('')
   : '<div class="ph">题库为空，请在上方新增题目，或于 Interview Hub 训练中沉淀。</div>';
-  if(expandedBrainId){
-    const ta=$('ans'+expandedBrainId);
-    if(ta) setTimeout(()=>autoResize(ta),0);
-  }
+  renderRichToolbars($('brainBank'));
 }
 function expandBrain(id){ expandedBrainId=id; renderBrainBank(); pinStoryCard('brainBank', id); }
 function collapseBrain(){ const id=expandedBrainId; saveBrain(id); keepItemAnchor('brainBank', id, ()=>{ expandedBrainId=null; renderBrainBank(); }); }
-function saveBrain(qid){ const q=brainQ.find(x=>x.id==qid); if(!q) return; const t=$('qTitle'+qid); if(t) q.q=t.value.trim(); const v=$('ans'+qid); if(v) q.ans=v.value.trim(); saveBrainLS(); }
+function saveBrain(qid){ const q=brainQ.find(x=>x.id==qid); if(!q) return; const t=$('qTitle'+qid); if(t) q.q=t.value.trim(); const rich=getRichEditor('ans'+qid); q.ansRich=rich; q.ans=richPlain(rich).trim(); saveBrainLS(); }
 function saveAns(qid){ saveBrain(qid); }
 function removeQ(qid){ brainQ=brainQ.filter(x=>x.id!=qid); if(expandedBrainId===qid) expandedBrainId=null; preserveScroll(renderBrainBank); saveBrainLS(); }
 function addQ(){ const v=$('newQ').value.trim(); if(!v){ toast('请输入真题'); return; } const id=++brainSeq; brainQ.push({id, q:v, weak:[], ans:''}); $('newQ').value=''; expandedBrainId=id; renderBrainBank(); saveBrainLS(); toast('已新增'); }
@@ -3820,8 +3871,8 @@ function renderCheatSheet(){
 function strHash(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
 const CHEAT_MAX=10; // 软建议：单个关键词理想不超过 10 字；但「连在一起的短语」不再强制切分，避免拆成多个气泡后删除互相牵连
 function splitCheatTokens(text){
-  // 仅按逗号（中/英文）拆词；顿号、冒号、分号、斜杠等其他标点均不作分隔，保证上下文连着的短语作为一个气泡整体存在
-  return (text||'').split(/[，,]+/).map(s=>s.trim()).filter(Boolean);
+  // 仅按句号（中/英文）拆词；其他标点保留在短语中，避免破坏完整上下文。
+  return (text||'').split(/[。.]+/).map(s=>s.trim()).filter(Boolean);
 }
 function chipSizeClass(w){
   if(w>=6) return 'chip-lg';
@@ -3963,7 +4014,7 @@ function addCheat(){
   if(editingCheat.id!=null){ commitCheatEdit(); return; }
   if(cheatJobCtx==null){ toast('请先选择一个视图再添加'); return; }
   const raw=$('cheatText').value||'';
-  const lines=(raw||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
+  const lines=(raw||'').split(/[。\.\n\r]+/).map(s=>s.trim()).filter(Boolean);
   if(!lines.length){ toast('请输入锦囊内容'); return; }
   const capLines=lines.map(s=>s.slice(0,200));
   let added=0;
@@ -4139,11 +4190,14 @@ function openPresetSyncModal(){
   const list=$('presetSyncJobList');
   list.innerHTML = jobs.map(j=>`
     <label style="display:block;margin:6px 0;padding:8px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;">
-      <input type="checkbox" name="presetSyncJob" value="${j.id}" checked> 🎯 ${esc(j.role)} @ ${esc(j.company)}
+      <input type="checkbox" name="presetSyncJob" value="${j.id}" checked onchange="updatePresetSyncToggle()"> 🎯 ${esc(j.role)} @ ${esc(j.company)}
     </label>
   `).join('');
+  updatePresetSyncToggle();
   $('cheatPresetModal').style.display='flex';
 }
+function updatePresetSyncToggle(){ const all=Array.from(document.querySelectorAll('input[name=presetSyncJob]')); const btn=$('presetSyncToggle'); if(btn) btn.textContent=all.length&&all.every(x=>x.checked)?'一键取消全选':'一键全选'; }
+function togglePresetSyncJobs(){ const all=Array.from(document.querySelectorAll('input[name=presetSyncJob]')); const shouldSelect=all.some(x=>!x.checked); all.forEach(x=>x.checked=shouldSelect); updatePresetSyncToggle(); }
 function closeCheatPresetModal(){ $('cheatPresetModal').style.display='none'; }
 function syncSelectedPresets(){
   const checked=Array.from(document.querySelectorAll('input[name=presetSyncJob]:checked')).map(cb=>cb.value);
@@ -4381,8 +4435,8 @@ function renderStarList(){
     const preview=(s.story||'').trim()||'（暂无内容）';
     if(isOpen){
       return `<div class="story-card expanded" data-id="${s.id}">
-        <input type="text" class="sc-title-input" id="starTitle${s.id}" value="${esc(s.title)}" onblur="saveStar(${s.id})" placeholder="经历标题">
-        <textarea id="star${s.id}" onblur="saveStar(${s.id})" placeholder="STAR 结构：背景/行动/结果">${esc(s.story||'')}</textarea>
+        <textarea class="sc-title-input" id="starTitle${s.id}" rows="2" onblur="saveStar(${s.id})" placeholder="经历标题">${esc(s.title)}</textarea>
+        ${richEditorMarkup('star'+s.id, s.storyRich, s.story||'', 'STAR 结构：背景/行动/结果')}
         <div class="sc-save-row">
           <button class="btn sm" onclick="event.stopPropagation(); collapseStar()">✓ 保存并收起</button>
           <div class="sc-actions"><span onclick="event.stopPropagation(); removeStar(${s.id})" title="删除此经历">✕</span></div>
@@ -4398,15 +4452,12 @@ function renderStarList(){
     </div>`;
   }).join('')
   : '<div class="ph">暂无 STAR 故事，点击新增沉淀你的经历库。</div>';
-  if(expandedStarId){
-    const ta=$('star'+expandedStarId);
-    if(ta) setTimeout(()=>autoResize(ta),0);
-  }
+  renderRichToolbars($('starList'));
 }
 function expandStar(id){ expandedStarId=id; renderStarList(); pinStoryCard('starList', id); }
 function collapseStar(){ const id=expandedStarId; saveStar(id); keepItemAnchor('starList', id, ()=>{ expandedStarId=null; renderStarList(); }); }
 function addStar(){ const v=$('starTitle').value.trim(); if(!v){ toast('请输入经历标题'); return; } const id=++starSeq; starStories.push({id, title:v, story:''}); $('starTitle').value=''; expandedStarId=id; renderStarList(); saveStarLS(); }
-function saveStar(id){ const s=starStories.find(x=>x.id==id); if(!s) return; const t=$('starTitle'+id); if(t) s.title=t.value.trim(); const v=$('star'+id); if(v) s.story=v.value; saveStarLS(); }
+function saveStar(id){ const s=starStories.find(x=>x.id==id); if(!s) return; const t=$('starTitle'+id); if(t) s.title=t.value.trim(); const rich=getRichEditor('star'+id); s.storyRich=rich; s.story=richPlain(rich); saveStarLS(); }
 function removeStar(id){ starStories=starStories.filter(x=>x.id!=id); if(expandedStarId===id) expandedStarId=null; preserveScroll(renderStarList); saveStarLS(); }
 
 /* ============ Settings ============ */
@@ -6697,11 +6748,11 @@ function renderRealQuestions(){
   const displayGroups = realQJobFilter==='all' ? groupArr : groupArr.filter(g=>g.key===realQJobFilter);
   const qItem=q=>`
     <div class="qa">
-      <div class="qa-top"><div class="qa-q">❓ ${esc(q.q)}</div></div>
-      ${q.purpose?`<div class="ans-label">🔍 考察目的</div><div class="ans-body">${esc(q.purpose)}</div>`:''}
+      <div class="qa-top"><div class="qa-q rich-display">❓ ${richContent(q.qRich,q.q)}</div></div>
+      ${richPlain(q.purposeRich||q.purpose)?`<div class="ans-label">🔍 考察目的</div><div class="ans-body rich-display">${richContent(q.purposeRich,q.purpose)}</div>`:''}
       <div class="ans-label">我的回答</div>
-      <div class="ans-body">${esc(q.a||'(空)')}</div>
-      ${q.model?`<div class="ans-label good">🎯 标准回答参考</div><div class="ans-body">${esc(q.model)}</div>`:''}
+      <div class="ans-body rich-display">${richPlain(q.aRich||q.a)?richContent(q.aRich,q.a):'(空)'}</div>
+      ${richPlain(q.modelRich||q.model)?`<div class="ans-label good">🎯 标准回答参考</div><div class="ans-body rich-display">${richContent(q.modelRich,q.model)}</div>`:''}
       ${q.note?`<div class="qa-note">💡 ${esc(q.note)}</div>`:''}
       <div class="qa-foot"><span class="ph">${q.date}</span><button class="btn sm ghost" onclick="openEditQuestion('${q.id}')">编辑</button><button class="btn sm ghost" onclick="removeRealQ('${q.id}')">删除</button></div>
     </div>`;
@@ -6720,31 +6771,33 @@ function renderRealQuestions(){
 function switchRealQTab(key){ realQJobFilter=key; renderRealQuestions(); }
 function openEditQuestion(id){
   const q=realQuestions.find(x=>x.id===id); if(!q) return;
-  $('editQId').value=id; $('editQText').value=q.q||''; $('editQAnswer').value=q.a||''; $('editQPurpose').value=q.purpose||''; $('editQModel').value=q.model||'';
+  $('editQId').value=id; setRichEditor('editQText',q.qRich,q.q); setRichEditor('editQAnswer',q.aRich,q.a); setRichEditor('editQPurpose',q.purposeRich,q.purpose); setRichEditor('editQModel',q.modelRich,q.model); renderRichToolbars($('editQuestionModal'));
   $('editQuestionModal').style.display='flex';
 }
 function closeEditQuestion(){ $('editQuestionModal').style.display='none'; }
 function saveEditQuestion(){
   const id=$('editQId').value; const q=realQuestions.find(x=>x.id===id); if(!q) return;
-  q.q=($('editQText').value||'').trim(); q.a=($('editQAnswer').value||'').trim(); q.purpose=($('editQPurpose').value||'').trim(); q.model=($('editQModel').value||'').trim();
+  q.qRich=getRichEditor('editQText'); q.aRich=getRichEditor('editQAnswer'); q.purposeRich=getRichEditor('editQPurpose'); q.modelRich=getRichEditor('editQModel');
+  q.q=richPlain(q.qRich).trim(); q.a=richPlain(q.aRich).trim(); q.purpose=richPlain(q.purposeRich).trim(); q.model=richPlain(q.modelRich).trim();
   if(!q.q){ toast('问题不能为空'); return; }
   saveReviewLS(); renderRealQuestions(); closeEditQuestion(); toast('真题已更新');
 }
 function removeRealQ(id){ realQuestions=realQuestions.filter(x=>x.id!==id); saveReviewLS(); renderRealQuestions(); toast('已删除'); }
 /* 手动新增真题到真题库 */
 function openAddQuestion(role='', company=''){
-  $('addQText').value=''; $('addQAnswer').value=''; $('addQPurpose').value=''; $('addQModel').value='';
+  setRichEditor('addQText','',''); setRichEditor('addQAnswer','',''); setRichEditor('addQPurpose','',''); setRichEditor('addQModel','',''); renderRichToolbars($('addQuestionModal'));
   $('addQRole').value=role||''; $('addQCompany').value=company||'';
   $('addQuestionModal').style.display='flex';
 }
 function closeAddQuestion(){ $('addQuestionModal').style.display='none'; }
 function saveAddQuestion(){
-  const q=($('addQText').value||'').trim();
+  const qRich=getRichEditor('addQText'), aRich=getRichEditor('addQAnswer'), purposeRich=getRichEditor('addQPurpose'), modelRich=getRichEditor('addQModel');
+  const q=richPlain(qRich).trim();
   if(!q){ toast('面试问题不能为空'); return; }
   realQuestions.unshift({
     id:Date.now()+Math.random().toString(36).slice(2,6),
-    q, a:($('addQAnswer').value||'').trim(),
-    purpose:($('addQPurpose').value||'').trim(), model:($('addQModel').value||'').trim(),
+    q, qRich, a:richPlain(aRich).trim(), aRich,
+    purpose:richPlain(purposeRich).trim(), purposeRich, model:richPlain(modelRich).trim(), modelRich,
     role:($('addQRole').value||'').trim(), company:($('addQCompany').value||'').trim(),
     date:new Date().toISOString().slice(0,10), note:''
   });
