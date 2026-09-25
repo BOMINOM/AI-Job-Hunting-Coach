@@ -760,7 +760,26 @@
   .rich-toolbar { display:flex; flex-wrap:wrap; gap:5px; padding:6px; border-bottom:1px solid #edf0fb; background:#fafbff; }
   .rich-tool { min-width:28px; height:26px; padding:0 7px; border:1px solid #e0e5f4; border-radius:5px; background:#fff; color:#4e5d7b; font-size:12px; font-weight:700; cursor:pointer; }
   .rich-tool.color-red { color:#d85263; } .rich-tool.color-blue { color:#4f78cf; } .rich-tool.color-green { color:#388c74; } .rich-tool.color-purple { color:#7456ca; }
+  .story-card .sc-hd .sc-actions { align-items:center; }
+  .story-drag { cursor:grab !important; touch-action:none; user-select:none; font-size:16px !important; }
+  .story-drag:active { cursor:grabbing !important; }
+  .story-card.story-drop-target { outline:2px dashed var(--indigo); outline-offset:2px; }
+  .story-star { cursor:pointer; font-size:17px !important; color:#a6adc1 !important; }
+  .story-star.is-on { color:#f4b321 !important; }
   .rich-editor { min-height:92px; padding:9px 10px; outline:none; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.6; font-size:13px; }
+  .rich-editor :is(h1,h2,h3,h4,h5,h6), .rich-display :is(h1,h2,h3,h4,h5,h6) { font-weight:700; line-height:1.4; margin:.65em 0 .3em; }
+  .rich-editor h1, .rich-display h1 { font-size:1.65em; }
+  .rich-editor h2, .rich-display h2 { font-size:1.45em; }
+  .rich-editor h3, .rich-display h3 { font-size:1.3em; }
+  .rich-editor h4, .rich-display h4 { font-size:1.17em; }
+  .rich-editor h5, .rich-editor h6, .rich-display h5, .rich-display h6 { font-size:1.05em; }
+  .rich-editor :is(ul,ol), .rich-display :is(ul,ol) { padding-left:1.7em; margin:.45em 0; }
+  .rich-editor li, .rich-display li { margin:.2em 0; }
+  .rich-editor p, .rich-display p { margin:.4em 0; }
+  .rich-editor blockquote, .rich-display blockquote { border-left:3px solid #c7d2fe; padding-left:10px; margin:.6em 0; }
+  .rich-editor pre, .rich-display pre { white-space:pre-wrap; background:#f5f7fb; padding:8px; border-radius:6px; }
+  .rich-editor table, .rich-display table { border-collapse:collapse; width:100%; }
+  .rich-editor td, .rich-editor th, .rich-display td, .rich-display th { border:1px solid #e0e5f4; padding:5px; }
   .rich-editor:empty:before { content:attr(data-placeholder); color:#9ca3af; pointer-events:none; }
   .rich-display { white-space:pre-wrap; overflow-wrap:anywhere; }
   .story-card .sc-save-row { display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
@@ -3287,56 +3306,170 @@ function pinStoryCard(containerId, id){
 function keepItemAnchor(containerId, id, fn){ fn(); pinStoryCard(containerId, id); }
 
 /* ============ 富文本编辑（加粗 / 斜体 / 颜色 / 字号） ============ */
-function richPlain(v){ const d=document.createElement('div'); d.innerHTML=String(v||''); return d.textContent||''; }
+function richPlain(v){
+  const d=document.createElement('div'); d.innerHTML=String(v||'');
+  const blocks=new Set(['H1','H2','H3','H4','H5','H6','P','DIV','UL','OL','LI','BLOCKQUOTE','PRE','TR']);
+  let result='';
+  const walk=node=>{
+    if(node.nodeType===Node.TEXT_NODE){ result+=node.nodeValue||''; return; }
+    if(node.nodeType!==Node.ELEMENT_NODE) return;
+    if(node.tagName==='BR'){ result+='\n'; return; }
+    const block=blocks.has(node.tagName);
+    if(block&&result&&!result.endsWith('\n')) result+='\n';
+    Array.from(node.childNodes).forEach(walk);
+    if(block&&!result.endsWith('\n')) result+='\n';
+  };
+  Array.from(d.childNodes).forEach(walk);
+  return result.replace(/\n{3,}/g,'\n\n').trim();
+}
 function richEscape(v){ return esc(String(v||'')).replace(/\n/g,'<br>'); }
 function sanitizeRichHTML(input){
   const source=document.createElement('div'); source.innerHTML=String(input||'');
   const out=document.createElement('div');
+  const blocks=new Set(['h1','h2','h3','h4','h5','h6','p','div','li','blockquote','pre','tr']);
+  const allowed=new Set(['strong','em','span','b','i','u','s','del','mark','a','code','font','sub','sup']);
+  const ignored=new Set(['script','style','iframe','object','embed','svg','form','input','button','textarea','select','meta','link']);
+  const headingSizes={h1:22,h2:20,h3:18,h4:16,h5:15,h6:14};
   const copy=node=>{
     if(node.nodeType===Node.TEXT_NODE) return document.createTextNode(node.nodeValue||'');
     if(node.nodeType!==Node.ELEMENT_NODE) return document.createTextNode('');
     const tag=node.tagName.toLowerCase();
-    if(tag==='br') return document.createElement('br');
-    const name=(tag==='b'||tag==='strong')?'strong':(tag==='i'||tag==='em')?'em':'span';
+    if(ignored.has(tag)) return document.createDocumentFragment();
+    if(tag==='br'||tag==='hr') return document.createElement('br');
+    const name=!allowed.has(tag)?'span':tag==='font'?'span':tag==='b'?'strong':tag==='i'?'em':tag==='del'?'s':tag;
     const clean=document.createElement(name);
-    if(tag==='span'){
-      const color=(node.style.color||'').trim(); const size=(node.style.fontSize||'').trim();
-      if(/^#[0-9a-f]{3,8}$/i.test(color)||/^rgb\(/i.test(color)) clean.style.color=color;
-      if(/^([1-9]|[12][0-9]|3[0-2])px$/.test(size)) clean.style.fontSize=size;
+    const color=(node.style.color||node.getAttribute('color')||'').trim();
+    if(/^#[0-9a-f]{3,8}$/i.test(color)||/^rgba?\([\d.,%\s]+\)$/i.test(color)) clean.style.color=color;
+    const bg=(node.style.backgroundColor||'').trim();
+    if(/^#[0-9a-f]{3,8}$/i.test(bg)||/^rgba?\([\d.,%\s]+\)$/i.test(bg)) clean.style.backgroundColor=bg;
+    const size=(node.style.fontSize||'').trim();
+    if(/^\d+(?:\.\d+)?px$/i.test(size)) clean.style.fontSize=Math.max(9,Math.min(48,parseFloat(size)))+'px';
+    else if(/^\d+(?:\.\d+)?pt$/i.test(size)) clean.style.fontSize=Math.max(9,Math.min(48,Math.round(parseFloat(size)*4/3)))+'px';
+    else if(/^\d+(?:\.\d+)?(?:em|rem|%)$/i.test(size)) clean.style.fontSize=size;
+    else if(headingSizes[tag]) clean.style.fontSize=headingSizes[tag]+'px';
+    if(/^(bold|[6-9]00)$/i.test(node.style.fontWeight)) clean.style.fontWeight='bold';
+    else if(headingSizes[tag] && node.style.fontWeight!=='normal') clean.style.fontWeight='bold';
+    if(node.style.fontStyle==='italic') clean.style.fontStyle='italic';
+    if(/underline|line-through/.test(node.style.textDecorationLine)) clean.style.textDecoration=node.style.textDecorationLine;
+    if(tag==='a'){
+      const href=node.getAttribute('href')||'';
+      if(/^(https?:\/\/|mailto:)/i.test(href)) { clean.setAttribute('href',href); clean.setAttribute('target','_blank'); clean.setAttribute('rel','noopener noreferrer'); }
+    }
+    if(tag==='li'){
+      const list=node.parentElement;
+      if(list&&list.tagName==='OL'){
+        const start=Number(list.getAttribute('start'))||1;
+        const index=Array.from(list.children).filter(el=>el.tagName==='LI').indexOf(node);
+        clean.appendChild(document.createTextNode((start+index)+'. '));
+      }else clean.appendChild(document.createTextNode('• '));
     }
     Array.from(node.childNodes).forEach(child=>clean.appendChild(copy(child)));
-    if(tag==='div'||tag==='p'){ const wrap=document.createDocumentFragment(); wrap.appendChild(clean); wrap.appendChild(document.createElement('br')); return wrap; }
+    if(blocks.has(tag)){
+      const fragment=document.createDocumentFragment();
+      if(clean.style.length||clean.hasAttributes()) fragment.appendChild(clean);
+      else while(clean.firstChild) fragment.appendChild(clean.firstChild);
+      fragment.appendChild(document.createElement('br'));
+      return fragment;
+    }
+    if(!allowed.has(tag)&&!clean.style.length&&!clean.hasAttributes()){
+      const fragment=document.createDocumentFragment();
+      while(clean.firstChild) fragment.appendChild(clean.firstChild);
+      return fragment;
+    }
     return clean;
   };
   Array.from(source.childNodes).forEach(node=>out.appendChild(copy(node)));
-  return out.innerHTML.replace(/(?:<br>){2,}$/,'');
+  return out.innerHTML.replace(/(?:<br>\s*){2,}/gi,'<br>').replace(/^(?:<br>)+|(?:<br>)+$/gi,'');
 }
 function richContent(html, plain){ return html?sanitizeRichHTML(html):richEscape(plain); }
-function richEditorMarkup(id, html, plain, placeholder){ return `<div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="${id}"></div><div id="${id}" class="rich-editor" contenteditable="true" data-placeholder="${esc(placeholder||'输入内容')}">${richContent(html,plain)}</div></div>`; }
+function richEditorMarkup(id, html, plain, placeholder){ return `<div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="${id}"></div><div id="${id}" class="rich-editor" contenteditable="true" onpaste="richPaste(event)" data-placeholder="${esc(placeholder||'输入内容')}">${richContent(html,plain)}</div></div>`; }
 function renderRichToolbars(scope=document){
   scope.querySelectorAll('.rich-toolbar[data-editor]').forEach(bar=>{
     if(bar.dataset.ready) return; bar.dataset.ready='1'; const id=bar.dataset.editor;
-    bar.innerHTML=`<button type="button" class="rich-tool" onmousedown="event.preventDefault()" onclick="richApply('${id}','bold')">B</button><button type="button" class="rich-tool" onmousedown="event.preventDefault()" onclick="richApply('${id}','italic')"><i>I</i></button><button type="button" class="rich-tool" onmousedown="event.preventDefault()" onclick="richApply('${id}','size','12px')">A−</button><button type="button" class="rich-tool" onmousedown="event.preventDefault()" onclick="richApply('${id}','size','16px')">A+</button><button type="button" class="rich-tool color-red" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#d85263')">●</button><button type="button" class="rich-tool color-blue" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#4f78cf')">●</button><button type="button" class="rich-tool color-green" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#388c74')">●</button><button type="button" class="rich-tool color-purple" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#7456ca')">●</button>`;
+    const target=$(id); if(target && !target.hasAttribute('onpaste')) target.addEventListener('paste',richPaste);
+    bar.innerHTML=`<button type="button" class="rich-tool" title="切换加粗" onmousedown="event.preventDefault()" onclick="richApply('${id}','bold')">B</button><button type="button" class="rich-tool" title="切换斜体" onmousedown="event.preventDefault()" onclick="richApply('${id}','italic')"><i>I</i></button><button type="button" class="rich-tool" onmousedown="event.preventDefault()" onclick="richApply('${id}','size','12px')">A−</button><button type="button" class="rich-tool" onmousedown="event.preventDefault()" onclick="richApply('${id}','size','16px')">A+</button><button type="button" class="rich-tool color-red" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#d85263')">●</button><button type="button" class="rich-tool color-blue" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#4f78cf')">●</button><button type="button" class="rich-tool color-green" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#388c74')">●</button><button type="button" class="rich-tool color-purple" onmousedown="event.preventDefault()" onclick="richApply('${id}','color','#7456ca')">●</button><button type="button" class="rich-tool" title="清除所选文字的全部格式" onmousedown="event.preventDefault()" onclick="richApply('${id}','clear')">清除格式</button>`;
   });
 }
 function richApply(id, kind, value){
   const editor=$(id), sel=window.getSelection(); if(!editor||!sel||!sel.rangeCount) return toast('请先选中需要设置格式的文字');
   const range=sel.getRangeAt(0); if(range.collapsed || !editor.contains(range.commonAncestorContainer)) return toast('请先在文本框中选中需要设置格式的文字');
+  if(kind==='clear'){
+    const chars=text=>String(text||'').replace(/\s/g,'');
+    const allText=editor.innerText||editor.textContent||'';
+    if(chars(allText)&&chars(range.toString())===chars(allText)){
+      const plain=richPlain(editor.innerHTML);
+      editor.replaceChildren(document.createTextNode(plain));
+      editor.focus({preventScroll:true});
+      const next=document.createRange(); next.selectNodeContents(editor); sel.removeAllRanges(); sel.addRange(next);
+      return;
+    }
+  }
+  if(kind==='bold'||kind==='italic'||kind==='clear'){
+    const block=range.startContainer.nodeType===Node.ELEMENT_NODE?range.startContainer:range.startContainer.parentElement;
+    const heading=kind==='clear'&&block&&block.closest('h1,h2,h3,h4,h5,h6');
+    editor.focus();
+    document.execCommand(kind==='clear'?'removeFormat':kind, false, null);
+    if(heading&&editor.contains(heading)) document.execCommand('formatBlock',false,'p');
+    return;
+  }
   const node=document.createElement(kind==='bold'?'strong':kind==='italic'?'em':'span');
   if(kind==='color') node.style.color=value; if(kind==='size') node.style.fontSize=value;
   node.appendChild(range.extractContents()); range.insertNode(node); sel.removeAllRanges(); const next=document.createRange(); next.selectNodeContents(node); sel.addRange(next); editor.focus();
+}
+function richPaste(event){
+  const html=event.clipboardData && event.clipboardData.getData('text/html');
+  if(!html) return;
+  event.preventDefault();
+  document.execCommand('insertHTML',false,sanitizeRichHTML(html));
 }
 function getRichEditor(id){ const el=$(id); return el?sanitizeRichHTML(el.innerHTML):''; }
 function setRichEditor(id, html, plain){ const el=$(id); if(el) el.innerHTML=richContent(html,plain); }
 
 /* ============ 行为面试题库 ============ */
 let expandedBrainId=null;
+function storyListOrder(items){ return items.filter(x=>x.starred).concat(items.filter(x=>!x.starred)); }
+let storyDrag=null;
+function storyDragStart(event,kind,id){
+  if(!event.target.closest('.story-drag')){ event.preventDefault(); return; }
+  storyDrag={kind,id}; event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain',kind+':'+id);
+}
+function storyDragOver(event,kind){
+  if(!storyDrag||storyDrag.kind!==kind) return;
+  event.preventDefault(); event.dataTransfer.dropEffect='move'; event.currentTarget.classList.add('story-drop-target');
+}
+function storyDragLeave(event){ event.currentTarget.classList.remove('story-drop-target'); }
+function storyDrop(event,kind,id){
+  event.preventDefault(); event.stopPropagation(); event.currentTarget.classList.remove('story-drop-target');
+  if(!storyDrag||storyDrag.kind!==kind||storyDrag.id===id) return;
+  const items=kind==='brain'?brainQ:starStories;
+  const from=items.findIndex(x=>x.id==storyDrag.id), to=items.findIndex(x=>x.id==id);
+  storyDrag=null;
+  if(from<0||to<0) return;
+  const dragged=items[from], target=items[to];
+  if(!!dragged.starred!==!!target.starred){ toast('请先将条目设为相同的星标状态，再拖拽排序'); return; }
+  if(kind==='brain'&&expandedBrainId!=null) saveBrain(expandedBrainId);
+  if(kind==='star'&&expandedStarId!=null) saveStar(expandedStarId);
+  const insertAfter=event.clientY>event.currentTarget.getBoundingClientRect().top+event.currentTarget.getBoundingClientRect().height/2;
+  items.splice(from,1); items.splice(items.indexOf(target)+(insertAfter?1:0),0,dragged);
+  if(kind==='brain'){ saveBrainLS(); renderBrainBank(); }else{ saveStarLS(); renderStarList(); }
+}
+function toggleStoryStar(kind,id){
+  const items=kind==='brain'?brainQ:starStories, item=items.find(x=>x.id==id); if(!item) return;
+  if(kind==='brain'&&expandedBrainId!=null) saveBrain(expandedBrainId);
+  if(kind==='star'&&expandedStarId!=null) saveStar(expandedStarId);
+  item.starred=!item.starred;
+  items.splice(items.indexOf(item),1);
+  if(item.starred) items.unshift(item);
+  else items.splice(items.filter(x=>x.starred).length,0,item);
+  if(kind==='brain'){ saveBrainLS(); renderBrainBank(); }else{ saveStarLS(); renderStarList(); }
+}
 function renderBrainBank(){
-  $('brainBank').innerHTML = brainQ.length? brainQ.map(q=>{
+  $('brainBank').innerHTML = brainQ.length? storyListOrder(brainQ).map(q=>{
     const isOpen=expandedBrainId===q.id;
     const preview=(q.ans||'').trim()||'（暂无标准答案）';
     if(isOpen){
-      return `<div class="story-card expanded" data-id="${q.id}">
+      return `<div class="story-card expanded" data-id="${q.id}" ondragstart="storyDragStart(event,'brain',${q.id})" ondragend="storyDrag=null" ondragover="storyDragOver(event,'brain')" ondragleave="storyDragLeave(event)" ondrop="storyDrop(event,'brain',${q.id})">
+        <div class="sc-hd"><div class="sc-actions"><span class="story-drag" draggable="true" title="拖拽排序">⠿</span><span class="story-star ${q.starred?'is-on':''}" onclick="event.stopPropagation();toggleStoryStar('brain',${q.id})" title="${q.starred?'取消星标':'星标置顶'}">${q.starred?'★':'☆'}</span></div></div>
         <textarea class="sc-title-input" id="qTitle${q.id}" rows="2" onblur="saveBrain(${q.id})" placeholder="面试题目">${esc(q.q)}</textarea>
         ${richEditorMarkup('ans'+q.id, q.ansRich, q.ans||'', '填写/编辑标准答案（STAR 结构）')}
         <div class="sc-save-row">
@@ -3345,10 +3478,10 @@ function renderBrainBank(){
         </div>
       </div>`;
     }
-    return `<div class="story-card" onclick="expandBrain(${q.id})">
+    return `<div class="story-card" data-id="${q.id}" ondragstart="storyDragStart(event,'brain',${q.id})" ondragend="storyDrag=null" ondragover="storyDragOver(event,'brain')" ondragleave="storyDragLeave(event)" ondrop="storyDrop(event,'brain',${q.id})" onclick="expandBrain(${q.id})">
       <div class="sc-hd">
         <div class="sc-title">「${esc(q.q)}」</div>
-        <div class="sc-actions"><span onclick="event.stopPropagation(); removeQ(${q.id})" title="删除此题">✕</span></div>
+        <div class="sc-actions"><span class="story-drag" draggable="true" onclick="event.stopPropagation()" title="拖拽排序">⠿</span><span class="story-star ${q.starred?'is-on':''}" onclick="event.stopPropagation();toggleStoryStar('brain',${q.id})" title="${q.starred?'取消星标':'星标置顶'}">${q.starred?'★':'☆'}</span><span onclick="event.stopPropagation(); removeQ(${q.id})" title="删除此题">✕</span></div>
       </div>
       <div class="sc-preview">${esc(preview)}</div>
       ${(q.weak||[]).length?`<div class="type-row" style="margin-top:6px;">${q.weak.map(w=>`<span class="tag">${esc(w)}</span>`).join('')}</div>`:''}
@@ -4460,11 +4593,12 @@ async function requestHint(){
 }
 let expandedStarId=null;
 function renderStarList(){
-  $('starList').innerHTML = starStories.length? starStories.map(s=>{
+  $('starList').innerHTML = starStories.length? storyListOrder(starStories).map(s=>{
     const isOpen=expandedStarId===s.id;
     const preview=(s.story||'').trim()||'（暂无内容）';
     if(isOpen){
-      return `<div class="story-card expanded" data-id="${s.id}">
+      return `<div class="story-card expanded" data-id="${s.id}" ondragstart="storyDragStart(event,'star',${s.id})" ondragend="storyDrag=null" ondragover="storyDragOver(event,'star')" ondragleave="storyDragLeave(event)" ondrop="storyDrop(event,'star',${s.id})">
+        <div class="sc-hd"><div class="sc-actions"><span class="story-drag" draggable="true" title="拖拽排序">⠿</span><span class="story-star ${s.starred?'is-on':''}" onclick="event.stopPropagation();toggleStoryStar('star',${s.id})" title="${s.starred?'取消星标':'星标置顶'}">${s.starred?'★':'☆'}</span></div></div>
         <textarea class="sc-title-input" id="starTitle${s.id}" rows="2" onblur="saveStar(${s.id})" placeholder="经历标题">${esc(s.title)}</textarea>
         ${richEditorMarkup('star'+s.id, s.storyRich, s.story||'', 'STAR 结构：背景/行动/结果')}
         <div class="sc-save-row">
@@ -4473,10 +4607,10 @@ function renderStarList(){
         </div>
       </div>`;
     }
-    return `<div class="story-card" onclick="expandStar(${s.id})">
+    return `<div class="story-card" data-id="${s.id}" ondragstart="storyDragStart(event,'star',${s.id})" ondragend="storyDrag=null" ondragover="storyDragOver(event,'star')" ondragleave="storyDragLeave(event)" ondrop="storyDrop(event,'star',${s.id})" onclick="expandStar(${s.id})">
       <div class="sc-hd">
         <div class="sc-title">${esc(s.title)}</div>
-        <div class="sc-actions"><span onclick="event.stopPropagation(); removeStar(${s.id})" title="删除此经历">✕</span></div>
+        <div class="sc-actions"><span class="story-drag" draggable="true" onclick="event.stopPropagation()" title="拖拽排序">⠿</span><span class="story-star ${s.starred?'is-on':''}" onclick="event.stopPropagation();toggleStoryStar('star',${s.id})" title="${s.starred?'取消星标':'星标置顶'}">${s.starred?'★':'☆'}</span><span onclick="event.stopPropagation(); removeStar(${s.id})" title="删除此经历">✕</span></div>
       </div>
       <div class="sc-preview">${esc(preview)}</div>
     </div>`;
@@ -6386,7 +6520,7 @@ ${raw}`;
       transcriptionNote:parsed.transcriptionNote||'', overall:parsed.overall||'', jobId:jobId||null, raw, fallbackFailed:fallbackFailed||false
     };
     // 纵向对比：与上一次面试复盘对比（优先同岗位）—— 在保存本次记录前先取上一条
-    const prevReview=findPrevReview(jobId);
+    const previousReviews=selectComparableReviews(job?job.role:'',jobId);
     // 自动保存复盘历史：只要生成了复盘报告，即计入一次复盘
     const qs=reviewResult.questions||[];
     const strengths=qs.map(q=>q.strength).filter(Boolean);
@@ -6402,6 +6536,7 @@ ${raw}`;
       overall:reviewResult.overall,
       overallScore:reviewResult.totalScore,
       strengths, weaknesses:[], suggestions,
+      questions:qs.map(q=>({q:q.q||'',a:q.a||'',strength:q.strength||'',weakness:q.weakness||''})),
       qasCount:qs.length,
       tags:[],
       pendingWeak:weaknesses // AI 识别的弱项，待用户在弹窗中确认归类后才写入 tags 并呈现到 Insights
@@ -6410,8 +6545,12 @@ ${raw}`;
     _reviewHistorySaved=true;
     saveReviewHistoryLS();
     window.__currentReviewRecordId=reviewRecord.id;
-    if(prevReview){
-      try{ reviewResult.comparison=await aiCompare(prevReview, reviewResult, job); }catch(e){ console.warn('纵向对比生成失败：', e); }
+    if(previousReviews.length && qs.some(q=>q.a)){
+      try{
+        reviewResult.comparison=await aiCompareHistory(previousReviews,reviewResult,job);
+        reviewRecord.comparison=reviewResult.comparison;
+        saveReviewHistoryLS();
+      }catch(e){ console.warn('历史表现对比生成失败：',e); reviewResult.comparisonError=e.message||'分析暂不可用'; }
     }
     renderReviewOut(reviewResult, job);
     toast(recovered? '复盘分析完成（问答已通过兜底提取）' : '复盘分析完成');
@@ -6420,6 +6559,17 @@ ${raw}`;
     if(e && e.name==='AbortError') toast('已停止分析');
     else toast('AI 分析失败：'+(e.message||'未知错误'));
   }finally{ $('reviewLoading').style.display='none'; if($('reviewStopBtn')) $('reviewStopBtn').style.display='none'; }
+}
+function renderHistoryComparison(d){
+  const c=d.comparison;
+  if(!c) return `<div class="card" style="margin-top:12px;background:#f8fafc;"><h3>📈 历史面试表现与进步趋势</h3><div class="ph">${d.comparisonError?'历史对比暂未生成：'+esc(d.comparisonError):'尚无可用的历史真实回答；完成下一次面试复盘后即可自动比较。旧记录若只保存评分，也需有原始回答才能做逐题对比。'}</div></div>`;
+  if(!c.historyCount) return `<div class="card" style="margin-top:12px;"><h3>📈 历史面试表现与进步趋势</h3><div class="ph">旧版报告仅依据复盘摘要生成对比，没有真实回答的逐题证据。</div><div class="overall">${esc(c.summary||'—')}</div></div>`;
+  const items=(name,values)=>`<div class="card"><h3>${name}</h3><ul class="rv-list">${(values||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li class="ph">暂无充分证据</li>'}</ul></div>`;
+  return `<div class="card" style="margin-top:12px;"><h3>📈 历史面试表现与进步趋势</h3>
+    <div class="ph">${esc(c.scope||'历史面试')} · 对比 ${Number(c.historyCount)||1} 份有真实回答的历史记录</div>
+    <div class="overall">${esc(c.summary||'')}</div><div class="grid g2" style="margin-top:10px;">${items('✅ 观察到的进步',c.improved)}${items('🔁 重复出现的问题',c.stillWeak)}</div>
+    <div class="card" style="margin-top:12px;"><h3>🗣 真实回答对比证据</h3>${(c.evidence||[]).map(x=>`<div class="qa"><b>${esc(x.topic||'对比题目')}</b><div class="ans-body">过去：${esc(x.past||'—')}</div><div class="ans-body">本次：${esc(x.current||'—')}</div><div class="ph">${esc(x.observation||'')}</div></div>`).join('')||'<div class="ph">暂无可直接比较的同类问题</div>'}</div>
+    <div style="margin-top:12px;">${items('🎯 下次重点',c.focusNext)}</div></div>`;
 }
 function renderReviewOut(d, job){
   const sum=d.summary||{};
@@ -6454,9 +6604,7 @@ function renderReviewOut(d, job){
       <div class="ans-label">🎯 标准回答</div><div class="ans-body">${esc(maMap[x.q] || '(未生成标准回答)')}</div></div>`).join('')||'<div class="ph">—</div>';
   const rq=(d.reverseQuestions||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li class="ph">—</li>';
   // 纵向对比
-  const cmpHtml = d.comparison
-    ? `<div class="card" style="margin-top:12px;"><h3>🔁 与上一次面试纵向对比</h3><div class="overall">${esc(d.comparison.summary||'')}</div><div class="grid g2" style="margin-top:10px;"><div class="card"><h3>📈 进步点</h3><ul class="rv-list">${(d.comparison.improved||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li class="ph">—</li>'}</ul></div><div class="card"><h3>🔧 仍需改进</h3><ul class="rv-list warn">${(d.comparison.stillWeak||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li class="ph">—</li>'}</ul></div></div><div class="card" style="margin-top:12px;"><h3>🎯 下次聚焦</h3><ul class="rv-list">${(d.comparison.focusNext||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li class="ph">—</li>'}</ul></div></div>`
-    : '<div class="card" style="margin-top:12px;background:#f8fafc;"><div class="ph">📌 这是你首次复盘记录，下次复盘将自动生成「与上一次面试的纵向对比」。</div></div>';
+  const cmpHtml=renderHistoryComparison(d);
   // 弱项归类确认区块（内联，确认后才进入 Insights 弱项分布）
   const curRec = (window.__currentReviewRecordId)? reviewHistory.find(r=>r.id===window.__currentReviewRecordId):null;
   const weakTotal = curRec ? ((curRec.weaknesses&&curRec.weaknesses.length)||(curRec.pendingWeak&&curRec.pendingWeak.length)||0) : 0;
@@ -6988,6 +7136,45 @@ async function aiCompare(prev, cur, job){
   const parsed=JSON.parse(t);
   if(!parsed || typeof parsed!=='object') throw new Error('AI 返回格式不正确');
   return parsed;
+}
+/* 根据真实回答选择最多 5 份历史复盘，旧报告中保留的问答也可用于比较。 */
+function reviewRoleFamily(role){
+  const s=String(role||'').toLowerCase().replace(/[\s·_\-/（）()]/g,'');
+  if(/hris|hcm|人力资源信息系统|人力资源系统|人事系统|人力系统/.test(s)) return 'HRIS';
+  if(/产品经理|产品负责人|productmanager|productowner|产品设计/.test(s)) return '产品经理';
+  if(/hrbp|人力资源业务伙伴/.test(s)) return 'HRBP';
+  if(/招聘|talentacquisition/.test(s)) return '招聘';
+  if(/数据分析|peopleanalytics|bi分析/.test(s)) return '数据分析';
+  return s;
+}
+function selectComparableReviews(role,jobId){
+  const reports=(savedReviewReports||[]).filter(x=>x.report).map(x=>({
+    id:x.recordId||x.id,date:x.date||'',role:x.role||'',jobId:x.jobId,
+    questions:x.report.questions||[],overallScore:x.report.totalScore
+  }));
+  const byId=new Map();
+  (reviewHistory||[]).forEach(x=>byId.set(String(x.id),x));
+  reports.forEach(x=>{const old=byId.get(String(x.id)); if(!old||!(old.questions||[]).some(q=>q.a)) byId.set(String(x.id),x);});
+  const candidates=[...byId.values()].filter(x=>(x.questions||[]).some(q=>String(q.a||q.answer||'').trim()));
+  const current=reviewRoleFamily(role);
+  const ranked=candidates.map(x=>{
+    const other=reviewRoleFamily(x.role),exact=!!role&&String(x.role||'').trim().toLowerCase()===String(role).trim().toLowerCase();
+    const similar=!!current&&!!other&&(other===current||other.includes(current)||current.includes(other));
+    return {...x,relation:exact?'同岗位':similar?'相近岗位':'其他岗位',rank:jobId&&String(x.jobId)===String(jobId)?3:exact?2:similar?1:0};
+  }).sort((a,b)=>b.rank-a.rank||String(b.date||'').localeCompare(String(a.date||'')));
+  const related=ranked.filter(x=>x.rank>0);
+  return (related.length?related:ranked).slice(0,5);
+}
+async function aiCompareHistory(history,cur,job){
+  const scope=history.some(x=>x.rank>0)?'优先对比同岗位/相近岗位':'暂无同类岗位，按最近的岗位对比';
+  const lines=history.map((h,i)=>`历史${i+1}：${h.date||'日期未记录'} · ${h.role||'岗位未记录'} · ${h.relation} · 综合分${h.overallScore??'未记录'}\n${(h.questions||[]).filter(q=>q.a||q.answer).slice(0,6).map(q=>`问：${String(q.q||'').slice(0,120)}；真实回答：${String(q.a||q.answer).slice(0,650)}；问题：${String(q.weakness||'').slice(0,140)}`).join('\n')}`).join('\n\n');
+  const current=(cur.questions||[]).filter(q=>q.a).slice(0,8).map(q=>`问：${String(q.q||'').slice(0,120)}；真实回答：${String(q.a).slice(0,650)}；问题：${String(q.weakness||'').slice(0,140)}`).join('\n');
+  const prompt=`你是面试表现跟踪教练。基于候选人回答原话，对比当前与以下${history.length}份历史面试。岗位相近时优先找同类问题；岗位不同要说明可比性局限。严禁使用参考/标准答案冒充本人回答，也不能仅凭综合分推断进步。\n范围：${scope}\n【历史真实回答】\n${lines}\n【本次 ${job?job.role:'岗位未记录'} 的真实回答】\n${current}\n只返回严格 JSON：{"summary":"总体变化与证据限制","improved":["具体进步及过去与本次回答依据"],"stillWeak":["多次出现的相同问题及回答依据"],"focusNext":["下次具体练习动作"],"evidence":[{"topic":"可比问题/能力","past":"历史原话短摘","current":"本次原话短摘","observation":"变化或重复问题；仅能推测则说明"}]}。若没有同类问答可直接比较，evidence 返回空数组，说明证据不足。`;
+  const content=await aiCall([{role:'user',content:prompt}],{max_tokens:2600,temperature:0.2,timeout:120000});
+  let t=String(content||'').trim(); const m=t.match(/```(?:json)?\s*([\s\S]*?)```/i); if(m) t=m[1];
+  const parsed=JSON.parse(t); if(!parsed||typeof parsed!=='object') throw Error('AI 返回格式不正确');
+  const list=v=>Array.isArray(v)?v.map(String).slice(0,5):[];
+  return {scope,historyCount:history.length,summary:String(parsed.summary||''),improved:list(parsed.improved),stillWeak:list(parsed.stillWeak),focusNext:list(parsed.focusNext),evidence:Array.isArray(parsed.evidence)?parsed.evidence.slice(0,5).map(x=>({topic:String(x.topic||''),past:String(x.past||''),current:String(x.current||''),observation:String(x.observation||'')})):[]};
 }
 /* 录音：浏览器实时语音识别（Web Speech API），仅 Chrome/Edge 支持，需授权麦克风；不支持时请用文字稿 */
 let _rec=null, _recFinal='', _recActive=false;
