@@ -3320,7 +3320,7 @@ function richPlain(v){
     if(block&&!result.endsWith('\n')) result+='\n';
   };
   Array.from(d.childNodes).forEach(walk);
-  return result.replace(/\n{3,}/g,'\n\n').trim();
+  return result.trim();
 }
 function richEscape(v){ return esc(String(v||'')).replace(/\n/g,'<br>'); }
 function sanitizeRichHTML(input){
@@ -3330,6 +3330,21 @@ function sanitizeRichHTML(input){
   const allowed=new Set(['strong','em','span','b','i','u','s','del','mark','a','code','font','sub','sup']);
   const ignored=new Set(['script','style','iframe','object','embed','svg','form','input','button','textarea','select','meta','link']);
   const headingSizes={h1:22,h2:20,h3:18,h4:16,h5:15,h6:14};
+  const endsWithBreak=parent=>{
+    let last=parent.lastChild;
+    while(last&&last.lastChild) last=last.lastChild;
+    return !!last && (last.nodeName==='BR'||(last.nodeType===Node.TEXT_NODE&&/\n$/.test(last.nodeValue||'')));
+  };
+  // Browsers can put the first line directly in the editor and subsequent
+  // lines in <div> blocks. A block then needs a break *before* it as well.
+  const appendChildren=(from,to)=>{
+    Array.from(from.childNodes).forEach(child=>{
+      if(child.nodeType===Node.ELEMENT_NODE&&blocks.has(child.tagName.toLowerCase())&&to.hasChildNodes()&&!endsWithBreak(to)){
+        to.appendChild(document.createElement('br'));
+      }
+      to.appendChild(copy(child));
+    });
+  };
   const copy=node=>{
     if(node.nodeType===Node.TEXT_NODE) return document.createTextNode(node.nodeValue||'');
     if(node.nodeType!==Node.ELEMENT_NODE) return document.createTextNode('');
@@ -3363,12 +3378,18 @@ function sanitizeRichHTML(input){
         clean.appendChild(document.createTextNode((start+index)+'. '));
       }else clean.appendChild(document.createTextNode('• '));
     }
-    Array.from(node.childNodes).forEach(child=>clean.appendChild(copy(child)));
+    appendChildren(node,clean);
     if(blocks.has(tag)){
       const fragment=document.createDocumentFragment();
+      // A blank contenteditable line is usually <div><br></div>: it represents
+      // one line break, not two. Keep repeated blank lines from separate blocks.
+      const onlyBreak=clean.childNodes.length===1 && clean.firstChild.nodeName==='BR';
+      if(!clean.hasChildNodes()||onlyBreak){ fragment.appendChild(document.createElement('br')); return fragment; }
+      let last=clean.lastChild;
+      while(last&&last.lastChild) last=last.lastChild;
       if(clean.style.length||clean.hasAttributes()) fragment.appendChild(clean);
       else while(clean.firstChild) fragment.appendChild(clean.firstChild);
-      fragment.appendChild(document.createElement('br'));
+      if(!last||last.nodeName!=='BR') fragment.appendChild(document.createElement('br'));
       return fragment;
     }
     if(!allowed.has(tag)&&!clean.style.length&&!clean.hasAttributes()){
@@ -3378,8 +3399,10 @@ function sanitizeRichHTML(input){
     }
     return clean;
   };
-  Array.from(source.childNodes).forEach(node=>out.appendChild(copy(node)));
-  return out.innerHTML.replace(/(?:<br>\s*){2,}/gi,'<br>').replace(/^(?:<br>)+|(?:<br>)+$/gi,'');
+  appendChildren(source,out);
+  // Each <br> is an intentional line break. Collapsing consecutive breaks here
+  // erased the empty lines the user added before saving and reopening an item.
+  return out.innerHTML;
 }
 function richContent(html, plain){ return html?sanitizeRichHTML(html):richEscape(plain); }
 function richEditorMarkup(id, html, plain, placeholder){ return `<div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="${id}"></div><div id="${id}" class="rich-editor" contenteditable="true" onpaste="richPaste(event)" data-placeholder="${esc(placeholder||'输入内容')}">${richContent(html,plain)}</div></div>`; }
