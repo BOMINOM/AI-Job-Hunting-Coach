@@ -749,13 +749,13 @@
   .story-card:hover { box-shadow:0 2px 10px rgba(99,102,241,.08); border-color:#d2d8ff; }
   .story-card.expanded { cursor:default; background:#fcfdff; }
   .story-card .sc-hd { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
-  .story-card .sc-title { font-weight:700; font-size:13px; color:var(--ink); word-break:break-word; flex:1; line-height:1.45; }
+  .story-card .sc-title { font-weight:700; font-size:13px; color:var(--ink); word-break:break-word; flex:1; line-height:1.45; scroll-margin-top:84px; }
   .story-card .sc-actions { display:flex; gap:10px; flex:none; }
   .story-card .sc-actions span { cursor:pointer; color:var(--soft); font-size:15px; line-height:1; }
   .story-card .sc-actions span:hover { color:var(--indigo); }
   .story-card .sc-preview { color:var(--soft); font-size:12.5px; margin-top:5px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   #starList, #brainBank { overflow-anchor:none; }
-  .story-card.expanded .sc-title-input { width:100%; min-height:46px; font-weight:700; font-size:13px; padding:8px 10px; margin-bottom:6px; border:1px solid #e6ecff; border-radius:8px; box-sizing:border-box; resize:vertical; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .story-card.expanded .sc-title-input { width:100%; min-height:46px; font-weight:700; font-size:13px; padding:8px 10px; margin-bottom:6px; border:1px solid #e6ecff; border-radius:8px; box-sizing:border-box; resize:vertical; white-space:pre-wrap; overflow-wrap:anywhere; scroll-margin-top:84px; }
   .rich-editor-wrap { margin-top:6px; border:1px solid #e6ecff; border-radius:8px; overflow:hidden; background:#fff; }
   .rich-toolbar { display:flex; flex-wrap:wrap; gap:5px; padding:6px; border-bottom:1px solid #edf0fb; background:#fafbff; }
   .rich-tool { min-width:28px; height:26px; padding:0 7px; border:1px solid #e0e5f4; border-radius:5px; background:#fff; color:#4e5d7b; font-size:12px; font-weight:700; cursor:pointer; }
@@ -794,13 +794,11 @@
   .tag-lv h4 { display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:var(--soft); margin-bottom:6px; }
   .tag-inline-edit { width:auto; min-width:8em; max-width:min(100%,320px); padding:3px 7px; font-size:inherit; }
   .removable .tag-text { cursor:text; }
-  .tag-lv h4 { font-size:12.5px; color:var(--soft); margin-bottom:6px; }
+
   .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .type-row, .tag-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:6px 0; }
   .removable { display:inline-flex; align-items:center; gap:6px; padding:5px 8px 5px 12px; border-radius:20px;
                background:#eef2ff; color:var(--ink); font-size:12.5px; }
-  .removable { cursor:grab; user-select:none; }
-  .removable:active { cursor:grabbing; opacity:.65; }
   .removable .x { cursor:pointer; color:#ef4444; font-weight:700; }
   .tip-line { font-size:12px; color:var(--soft); margin:4px 0 10px; }
   .fb-item { border-left:3px solid var(--indigo); background:#f8faff; border-radius:6px; padding:8px 10px; margin-bottom:8px; font-size:12.5px; }
@@ -815,6 +813,9 @@
 .ans-body{padding:8px 10px;background:#fafafa;border:1px solid #eee;border-radius:8px;white-space:pre-wrap;line-height:1.7;margin-top:4px;}
 .qa-note{margin-top:6px;padding:8px 10px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:6px;font-size:12.5px;line-height:1.6;}
 /* 复盘报告新增样式 */
+.rv-history-used{margin:10px 0;padding:9px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;}
+.rv-history-used summary{cursor:pointer;font-weight:600;color:#475569;}
+.rv-history-used ul{margin:7px 0 0;padding-left:22px;line-height:1.7;}
 .rv-h{margin:20px 0 10px;font-size:16px;font-weight:700;color:var(--indigo);border-left:4px solid var(--indigo);padding-left:10px;}
 .kv{display:grid;grid-template-columns:1fr;gap:10px;}
 .kv>div{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.7;}
@@ -1329,7 +1330,7 @@
       <div><label>面试问题</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQText"></div><div id="addQText" class="rich-editor" contenteditable="true" data-placeholder="如：请简述你做过最复杂的一个数据迁移项目"></div></div></div>
       <div style="margin-top:10px;"><label>我的回答 / 标准回答</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQAnswer"></div><div id="addQAnswer" class="rich-editor" contenteditable="true" data-placeholder="可直接粘贴你的实际回答原文"></div></div></div>
       <div style="margin-top:10px;"><label>考察目的（可选）</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQPurpose"></div><div id="addQPurpose" class="rich-editor" contenteditable="true" data-placeholder="面试官想考察的能力 / 经验"></div></div></div>
-      <div style="margin-top:10px;"><label>标准回答参考（可选）</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQModel"></div><div id="addQModel" class="rich-editor" contenteditable="true" data-placeholder="可填写标准回答参考"></div></div></div>
+      <div style="margin-top:10px;"><label>标准回答参考（可选）</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQModel"></div><div id="addQModel" class="rich-editor" contenteditable="true" data-placeholder="可填写你认为更优的回答作为参考"></div></div></div>
       <div class="row2" style="margin-top:10px;">
         <div><label>岗位（可选）</label><input id="addQRole" placeholder="如 HR数字化PM"></div>
         <div><label>公司（可选）</label><input id="addQCompany" placeholder="如 XX集团"></div>
@@ -1392,8 +1393,8 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ===== 命名空间隔离：demo 版与纯净版使用独立存储，避免 GitHub Pages 同源下读取彼此的数据 =====
-   本文件为 PROD 纯净版，命名空间固定为 'prod'。
+/* ===== 命名空间隔离：修复同一 origin 下 demo 版 / 纯净版 GitHub Pages 共享 localStorage 导致数据互相串流的问题 =====
+   本文件命名空间 = 'prod'（demo 版文件请改为 'demo'）。
    逻辑存储键（如 ajhc_jobs）在读写 localStorage / sessionStorage 时自动映射为物理键 ajhc_<NS>_jobs，
    Gist 同步 / 合并逻辑全部沿用逻辑键，无需改动；Gist 配置键也按 NS 隔离（各自独立 Token）。 */
 const AJHC_NS = 'prod';
@@ -2574,6 +2575,7 @@ async function parseUrl(url, src){
   }else{
     $('parseHint').textContent='⚠️ 无法抓取该链接（'+(lastErr&&lastErr.message?lastErr.message:lastErr)+'）。该站点可能禁止自动化抓取，建议直接粘贴 JD 文本，或切换「截图」页上传职位截图由 AI 视觉解析。';
   }
+  saveCreateDraft();
 }
 /* ---------- JD 文本解析（PRD §4.5） ---------- */
 async function parseJD(){
@@ -2604,7 +2606,6 @@ async function parseJD(){
     }
 
     // 3. 先用规则提取；公司、职位、经验、学历或职责/要求缺失时，再自动调用已配置的 AI 补全。
-    // 这样既减少不必要的联网调用，也优先保证求职匹配分析最依赖的关键字段完整。
     const f = extractJDFields(jdText);
     let aiUsed=false;
     const needAi=['company','role','exp','edu','duties','reqs'].some(k=>!f[k] || (Array.isArray(f[k]) && !f[k].length));
@@ -3238,7 +3239,6 @@ function loadCheatPresets(){
     cheatPresets['关键数据']=raw.map(text=>({id:++cheatSeq, text:String(text)}));
     saveCheatPresets();
   }
-  saveCreateDraft();
 }
 function saveCheatPresets(){
   try{
@@ -3381,7 +3381,8 @@ function topWeak(n){ return Object.entries(weakCounts()).sort((a,b)=>b[1]-a[1]).
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); URL.revokeObjectURL(a.href); }
 // 重渲染前记录滚动位置，渲染后还原，避免卡片收起/删除导致下方内容（如面试锦囊）被顶进视口
 function preserveScroll(fn){ const x=window.scrollX, y=window.scrollY; try{ fn(); }finally{ window.scrollTo(x,y); } }
-/* 展开或收起后，主动把刚操作的卡片标题带回视野顶部；多次执行以覆盖 textarea 撑高后的浏览器自动滚动。 */
+/* 展开或收起后，主动把刚操作的卡片标题带回视野顶部。
+   不依赖 scrollIntoView，避免桌面端的滚动锚定把视野留在长文本的原位置。 */
 function pinStoryCard(containerId, id){
   const pin=()=>{
     const card=document.querySelector('#'+containerId+' .story-card[data-id="'+id+'"]');
@@ -3389,11 +3390,16 @@ function pinStoryCard(containerId, id){
     const title=card.querySelector('.sc-title-input, .sc-title') || card;
     const ta=card.querySelector('textarea');
     if(ta) ta.scrollTop=0; // 长答案永远从第一行开始阅读
-    const top=Math.max(0, window.scrollY + title.getBoundingClientRect().top - 110);
+    const root=document.scrollingElement||document.documentElement;
+    const topbar=document.querySelector('.topbar');
+    const offset=(topbar?topbar.getBoundingClientRect().height:0)+20;
+    const top=Math.max(0, root.scrollTop+title.getBoundingClientRect().top-offset);
+    root.scrollTop=top;
     window.scrollTo({top, behavior:'auto'});
   };
   requestAnimationFrame(()=>{ pin(); requestAnimationFrame(pin); });
-  setTimeout(pin,100);
+  setTimeout(pin,80);
+  setTimeout(pin,220);
 }
 function keepItemAnchor(containerId, id, fn){ fn(); pinStoryCard(containerId, id); }
 
@@ -5260,10 +5266,21 @@ const SKILLS_POOL=['HRIS','HCM','HR系统','人力资源数字化','薪酬','绩
 const INDUSTRIES_POOL=['跨境电商','零售','制造','互联网','金融','医疗','教育','物流','汽车','快消','地产','游戏'];
 const ROLES_POOL=['HR','人力资源','HRBP','HR数字化','数据分析','数字化','BP','PM','项目经理','招聘','薪酬','绩效'];
 /* 基础档案（全局唯一）：姓名 / 入行年份（自动算年限）/ 学历 / 专业 / 行业 */
-let profile = {name:'', careerStartYear:'', education:'不限', major:'', industries:[]};
+let profile = {name:'', title:'', email:'', phone:'', location:'', summary:'', links:[]};
 /* 经历版本（多份）：技能 / 目标岗位（各版本可不同）+ 工作经验 / 项目经历 / 亮点 / 概述 / 原始文本 */
 let resumes=[], resumeSeq=0, defaultResumeId=0, editingId=null, resumeLoaded=false;
-function seedResumes(){ /* PROD 纯净版不自动创建示例简历。 */ }
+function seedResumes(){
+  if(resumes.length) return;
+  resumes.push({id:++resumeSeq, name:'主简历',
+    skills:['HRIS','HCM','人力资源数字化','项目管理'],
+    targetRoles:['HR 数字化'],
+    workExp:'2000–至今 某跨境电商集团 HRIS 负责人，主导人力资源数字化与共享服务中心（SSC）建设。',
+    projectExp:'HRIS 系统上线项目：整合薪酬/绩效/招聘模块，流程效率提升 40%；搭建 HR BI 看板 20+。',
+    highlights:['主导 HRIS 上线，效率提升 40%','搭建 HR BI 看板 20+','跨国团队 HR 数字化落地'],
+    summary:'26 年人力资源数字化经验，擅长 HRIS 与数据分析。',
+    raw:''});
+  defaultResumeId=resumes[0].id;
+}
 function getResume(id){
   const r=resumes.find(x=>x.id==id); if(!r) return null;
   const curY=new Date().getFullYear();
@@ -6161,7 +6178,7 @@ loadCheatPresets();
 const loadedJobs=loadJobsLS();
 loadBrainLS();
 loadStarLS();
-if(!loadedJobs) saveJobsLS();   // 首次使用：保存当前空白状态
+if(!loadedJobs) saveJobsLS();   // 首次使用：把内置示例 Job 落盘
 saveBrainLS(); saveStarLS();
 jobs.forEach(j=>{ if(!j.timeline||!j.timeline.length) j.timeline=getImplicitTimeline(j.stage, j.applyDate||new Date().toISOString().slice(0,10)); });
 loadProfileLS(); renderHeaderUser();
@@ -6890,9 +6907,12 @@ function renderSavedReviewReports(){
   if(!savedReviewReports.length){ box.innerHTML='<div class="ph">暂无收藏的复盘报告。生成复盘报告后可点击「收藏该复盘报告」保存。</div>'; return; }
   box.innerHTML=savedReviewReports.map(r=>{
     const score=(r.report && typeof r.report.totalScore==='number' && !isNaN(r.report.totalScore))? r.report.totalScore : '—';
+    const job=r.jobId?jobs.find(j=>String(j.id)===String(r.jobId)):null;
+    const role=r.role||(job&&job.role)||'岗位未关联';
+    const company=r.company||(job&&job.company)||'公司未记录';
     return `<div class="qa">
-      <div class="qa-top"><div class="qa-q">📄 ${esc(r.name)}</div><span class="pill st-on">${esc(r.date)}</span></div>
-      <div class="qa-foot"><span class="ph">${r.role||'通用岗位'}${r.company?' @ '+esc(r.company):''} · 综合评分 <b>${score}</b></span><button class="btn sm ghost" onclick="loadSavedReviewReport('${r.id}')">查看</button><button class="btn sm ghost" onclick="deleteSavedReviewReport('${r.id}')">删除</button></div>
+      <div class="qa-top"><div class="qa-q">📄 ${esc(r.name||'复盘报告')}</div><span class="pill st-on">${esc(r.date||'日期未记录')}</span></div>
+      <div class="qa-foot"><span class="ph">${esc(role)} @ ${esc(company)} · 综合评分 <b>${score}</b></span><button class="btn sm ghost" onclick="loadSavedReviewReport('${r.id}')">查看</button><button class="btn sm ghost" onclick="deleteSavedReviewReport('${r.id}')">删除</button></div>
     </div>`;
   }).join('');
 }
