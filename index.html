@@ -749,13 +749,13 @@
   .story-card:hover { box-shadow:0 2px 10px rgba(99,102,241,.08); border-color:#d2d8ff; }
   .story-card.expanded { cursor:default; background:#fcfdff; }
   .story-card .sc-hd { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
-  .story-card .sc-title { font-weight:700; font-size:13px; color:var(--ink); word-break:break-word; flex:1; line-height:1.45; }
+  .story-card .sc-title { font-weight:700; font-size:13px; color:var(--ink); word-break:break-word; flex:1; line-height:1.45; scroll-margin-top:84px; }
   .story-card .sc-actions { display:flex; gap:10px; flex:none; }
   .story-card .sc-actions span { cursor:pointer; color:var(--soft); font-size:15px; line-height:1; }
   .story-card .sc-actions span:hover { color:var(--indigo); }
   .story-card .sc-preview { color:var(--soft); font-size:12.5px; margin-top:5px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   #starList, #brainBank { overflow-anchor:none; }
-  .story-card.expanded .sc-title-input { width:100%; min-height:46px; font-weight:700; font-size:13px; padding:8px 10px; margin-bottom:6px; border:1px solid #e6ecff; border-radius:8px; box-sizing:border-box; resize:vertical; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .story-card.expanded .sc-title-input { width:100%; min-height:46px; font-weight:700; font-size:13px; padding:8px 10px; margin-bottom:6px; border:1px solid #e6ecff; border-radius:8px; box-sizing:border-box; resize:vertical; white-space:pre-wrap; overflow-wrap:anywhere; scroll-margin-top:84px; }
   .rich-editor-wrap { margin-top:6px; border:1px solid #e6ecff; border-radius:8px; overflow:hidden; background:#fff; }
   .rich-toolbar { display:flex; flex-wrap:wrap; gap:5px; padding:6px; border-bottom:1px solid #edf0fb; background:#fafbff; }
   .rich-tool { min-width:28px; height:26px; padding:0 7px; border:1px solid #e0e5f4; border-radius:5px; background:#fff; color:#4e5d7b; font-size:12px; font-weight:700; cursor:pointer; }
@@ -784,23 +784,12 @@
   .rich-display { white-space:pre-wrap; overflow-wrap:anywhere; }
   .story-card .sc-save-row { display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
 
-  .tag-add-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:10px 0; }
-  .tag-add-row input { flex:1 1 220px; min-width:180px; }
-  .tag-add-row select { flex:0 1 200px; min-width:150px; }
-  .tag-add-row #newTagCategoryName { flex:0 1 200px; min-width:150px; }
-  .tag-add-row #newTagCategoryName[hidden] { display:none; }
-  .tag-lv { margin-bottom:12px; padding:8px; border:1px dashed transparent; border-radius:8px; transition:background .15s,border-color .15s; }
-  .tag-lv.tag-drop-target { background:#eff6ff; border-color:#818cf8; }
-  .tag-lv h4 { display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:var(--soft); margin-bottom:6px; }
-  .tag-inline-edit { width:auto; min-width:8em; max-width:min(100%,320px); padding:3px 7px; font-size:inherit; }
-  .removable .tag-text { cursor:text; }
+  .tag-lv { margin-bottom:12px; }
   .tag-lv h4 { font-size:12.5px; color:var(--soft); margin-bottom:6px; }
   .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .type-row, .tag-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:6px 0; }
   .removable { display:inline-flex; align-items:center; gap:6px; padding:5px 8px 5px 12px; border-radius:20px;
                background:#eef2ff; color:var(--ink); font-size:12.5px; }
-  .removable { cursor:grab; user-select:none; }
-  .removable:active { cursor:grabbing; opacity:.65; }
   .removable .x { cursor:pointer; color:#ef4444; font-weight:700; }
   .tip-line { font-size:12px; color:var(--soft); margin:4px 0 10px; }
   .fb-item { border-left:3px solid var(--indigo); background:#f8faff; border-radius:6px; padding:8px 10px; margin-bottom:8px; font-size:12.5px; }
@@ -1171,7 +1160,7 @@
         </div>
         <div class="card tag-card" style="grid-column:1/-1;order:2;"><h3>🏷️ 能力标签词库（弱项标签 · 固定 + 可扩展）</h3>
           <div id="tagMgr"></div>
-          <div class="tag-add-row"><input id="newTag" placeholder="新增弱项标签，如 业务敏感度" maxlength="40" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag();}"><select id="newTagCategory" aria-label="所属分类" onchange="toggleNewAbilityTagCategory()"></select><input id="newTagCategoryName" placeholder="填写新分类名称" maxlength="30" hidden onkeydown="if(event.key==='Enter'){event.preventDefault();addTag();}"><button class="btn sm" onclick="addTag()">＋ 添加</button></div>
+          <div class="add-row"><input id="newTag" placeholder="新增弱项标签，如 业务敏感度"><button class="btn sm" onclick="addTag()">＋ 添加</button></div>
           <div class="ph">面试反馈打标累计形成能力图谱。</div>
         </div>
                 <div class="card sync-card" style="grid-column:1/-1;order:1;"><h3>☁️ 多端同步（手机/电脑，GitHub Gist）</h3>
@@ -1329,7 +1318,7 @@
       <div><label>面试问题</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQText"></div><div id="addQText" class="rich-editor" contenteditable="true" data-placeholder="如：请简述你做过最复杂的一个数据迁移项目"></div></div></div>
       <div style="margin-top:10px;"><label>我的回答 / 标准回答</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQAnswer"></div><div id="addQAnswer" class="rich-editor" contenteditable="true" data-placeholder="可直接粘贴你的实际回答原文"></div></div></div>
       <div style="margin-top:10px;"><label>考察目的（可选）</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQPurpose"></div><div id="addQPurpose" class="rich-editor" contenteditable="true" data-placeholder="面试官想考察的能力 / 经验"></div></div></div>
-      <div style="margin-top:10px;"><label>标准回答参考（可选）</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQModel"></div><div id="addQModel" class="rich-editor" contenteditable="true" data-placeholder="可填写标准回答参考"></div></div></div>
+      <div style="margin-top:10px;"><label>标准回答参考（可选）</label><div class="rich-editor-wrap"><div class="rich-toolbar" onmousedown="event.preventDefault()" data-editor="addQModel"></div><div id="addQModel" class="rich-editor" contenteditable="true" data-placeholder="可填写你认为更优的回答作为参考"></div></div></div>
       <div class="row2" style="margin-top:10px;">
         <div><label>岗位（可选）</label><input id="addQRole" placeholder="如 HR数字化PM"></div>
         <div><label>公司（可选）</label><input id="addQCompany" placeholder="如 XX集团"></div>
@@ -1393,10 +1382,10 @@
 
 <script>
 /* ===== 命名空间隔离：修复同一 origin 下 demo 版 / 纯净版 GitHub Pages 共享 localStorage 导致数据互相串流的问题 =====
-   本文件命名空间 = 'demo'（纯净版文件请改为 'prod'）。
+   本文件命名空间 = 'prod'（demo 版文件请改为 'demo'）。
    逻辑存储键（如 ajhc_jobs）在读写 localStorage / sessionStorage 时自动映射为物理键 ajhc_<NS>_jobs，
    Gist 同步 / 合并逻辑全部沿用逻辑键，无需改动；Gist 配置键也按 NS 隔离（各自独立 Token）。 */
-const AJHC_NS = 'demo';
+const AJHC_NS = 'prod';
 (function(){
   var nsKey = (typeof AJHC_NS==='string' && AJHC_NS) ? 'ajhc_'+AJHC_NS+'_' : null;
   // 1) 旧数据一次性迁移到本命名空间（复制，不删除，避免影响同 origin 的另一版本）
@@ -2574,6 +2563,7 @@ async function parseUrl(url, src){
   }else{
     $('parseHint').textContent='⚠️ 无法抓取该链接（'+(lastErr&&lastErr.message?lastErr.message:lastErr)+'）。该站点可能禁止自动化抓取，建议直接粘贴 JD 文本，或切换「截图」页上传职位截图由 AI 视觉解析。';
   }
+  saveCreateDraft();
 }
 /* ---------- JD 文本解析（PRD §4.5） ---------- */
 async function parseJD(){
@@ -2604,7 +2594,6 @@ async function parseJD(){
     }
 
     // 3. 先用规则提取；公司、职位、经验、学历或职责/要求缺失时，再自动调用已配置的 AI 补全。
-    // 这样既减少不必要的联网调用，也优先保证求职匹配分析最依赖的关键字段完整。
     const f = extractJDFields(jdText);
     let aiUsed=false;
     const needAi=['company','role','exp','edu','duties','reqs'].some(k=>!f[k] || (Array.isArray(f[k]) && !f[k].length));
@@ -3152,11 +3141,9 @@ const TAG_LEVELS={
  /* 准备态度 */
  '面试准备不足':'准备态度','反问环节质量低':'准备态度','简历与经历不符':'准备态度'
 };
-const BASE_TAG_LEVELS={...TAG_LEVELS};
 const DEFAULT_ABILITY_TAGS=Object.keys(TAG_LEVELS);
 let abilityTags=DEFAULT_ABILITY_TAGS.slice();
-let abilityTagCategories={}, abilityTagCustomCategories=[], abilityTagCategoryRenames={};
-const levelOf=t=>abilityTagCategories[t]||TAG_LEVELS[t]||'自定义';
+const levelOf=t=>TAG_LEVELS[t]||'自定义';
 /* 关键词映射：用于把 AI 复盘的自由文本弱项自动归类到上述固定标签 */
 const TAG_KEYWORDS={
  '沟通表达不清晰':['沟通','表达','说不清','讲不清','表述','口齿','说不明白','表达不清','说不利索'],
@@ -3201,12 +3188,8 @@ function loadAbilityTagsLS(){
   try{ const v=localStorage.getItem('ajhc_tags'); if(v){ const arr=JSON.parse(v); if(Array.isArray(arr)){
     const set=new Set(abilityTags); arr.forEach(t=>{ if(t && typeof t==='string' && !set.has(t)){ abilityTags.push(t); set.add(t); } });
   } } }catch(e){}
-  try{const map=JSON.parse(localStorage.getItem('ajhc_tag_categories')||'{}');if(map&&typeof map==='object'&&!Array.isArray(map))abilityTagCategories=map;}catch(e){}
-  try{const cats=JSON.parse(localStorage.getItem('ajhc_tag_category_names')||'[]');if(Array.isArray(cats))abilityTagCustomCategories=cats.filter(x=>typeof x==='string'&&x.trim());}catch(e){}
-  try{const renames=JSON.parse(localStorage.getItem('ajhc_tag_category_renames')||'{}');if(renames&&typeof renames==='object'&&!Array.isArray(renames))abilityTagCategoryRenames=renames;}catch(e){}
-  Object.entries(abilityTagCategoryRenames).forEach(([baseName,currentName])=>{if(!currentName)return;Object.entries(BASE_TAG_LEVELS).forEach(([tag,base])=>{if(base===baseName)TAG_LEVELS[tag]=currentName;});});
 }
-function saveAbilityTagsLS(){try{localStorage.setItem('ajhc_tags',JSON.stringify(abilityTags));localStorage.setItem('ajhc_tag_categories',JSON.stringify(abilityTagCategories));localStorage.setItem('ajhc_tag_category_names',JSON.stringify(abilityTagCustomCategories));localStorage.setItem('ajhc_tag_category_renames',JSON.stringify(abilityTagCategoryRenames));}catch(e){}}
+function saveAbilityTagsLS(){ try{ localStorage.setItem('ajhc_tags', JSON.stringify(abilityTags)); }catch(e){} }
 loadAbilityTagsLS();
 
 let brainQ = [];
@@ -3238,7 +3221,6 @@ function loadCheatPresets(){
     cheatPresets['关键数据']=raw.map(text=>({id:++cheatSeq, text:String(text)}));
     saveCheatPresets();
   }
-  saveCreateDraft();
 }
 function saveCheatPresets(){
   try{
@@ -3381,7 +3363,8 @@ function topWeak(n){ return Object.entries(weakCounts()).sort((a,b)=>b[1]-a[1]).
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); URL.revokeObjectURL(a.href); }
 // 重渲染前记录滚动位置，渲染后还原，避免卡片收起/删除导致下方内容（如面试锦囊）被顶进视口
 function preserveScroll(fn){ const x=window.scrollX, y=window.scrollY; try{ fn(); }finally{ window.scrollTo(x,y); } }
-/* 展开或收起后，主动把刚操作的卡片标题带回视野顶部；多次执行以覆盖 textarea 撑高后的浏览器自动滚动。 */
+/* 展开或收起后，主动把刚操作的卡片标题带回视野顶部。
+   不依赖 scrollIntoView，避免桌面端的滚动锚定把视野留在长文本的原位置。 */
 function pinStoryCard(containerId, id){
   const pin=()=>{
     const card=document.querySelector('#'+containerId+' .story-card[data-id="'+id+'"]');
@@ -3389,11 +3372,16 @@ function pinStoryCard(containerId, id){
     const title=card.querySelector('.sc-title-input, .sc-title') || card;
     const ta=card.querySelector('textarea');
     if(ta) ta.scrollTop=0; // 长答案永远从第一行开始阅读
-    const top=Math.max(0, window.scrollY + title.getBoundingClientRect().top - 110);
+    const root=document.scrollingElement||document.documentElement;
+    const topbar=document.querySelector('.topbar');
+    const offset=(topbar?topbar.getBoundingClientRect().height:0)+20;
+    const top=Math.max(0, root.scrollTop+title.getBoundingClientRect().top-offset);
+    root.scrollTop=top;
     window.scrollTo({top, behavior:'auto'});
   };
   requestAnimationFrame(()=>{ pin(); requestAnimationFrame(pin); });
-  setTimeout(pin,100);
+  setTimeout(pin,80);
+  setTimeout(pin,220);
 }
 function keepItemAnchor(containerId, id, fn){ fn(); pinStoryCard(containerId, id); }
 
@@ -4502,18 +4490,11 @@ function saveStar(id){ const s=starStories.find(x=>x.id==id); if(!s) return; con
 function removeStar(id){ starStories=starStories.filter(x=>x.id!=id); if(expandedStarId===id) expandedStarId=null; preserveScroll(renderStarList); saveStarLS(); }
 
 /* ============ Settings ============ */
-function abilityTagCategoryOptions(){const used=Object.values(TAG_LEVELS).filter(c=>abilityTags.some(t=>levelOf(t)===c));const extra=[...abilityTagCustomCategories,...Object.values(abilityTagCategories).filter(c=>c&&!used.includes(c))];return Array.from(new Set([...used,...extra])).filter(Boolean);}
-function updateAbilityTagCategorySelect(){const sel=$('newTagCategory');if(!sel)return;const cats=abilityTagCategoryOptions(),current=sel.value;sel.innerHTML=cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')+'<option value="__new__">＋ 新增分类…</option>';if(cats.includes(current))sel.value=current;else if(cats.length)sel.value=cats.includes('自定义')?'自定义':cats[0];toggleNewAbilityTagCategory();}
-function bindAbilityTagDnD(){const box=$('tagMgr');if(!box||box.dataset.dragReady)return;box.dataset.dragReady='1';box.addEventListener('dblclick',event=>{const category=event.target.closest('[data-category-label]');if(category){event.preventDefault();event.stopPropagation();beginAbilityTagLabelEdit(category,'category');return;}const label=event.target.closest('[data-tag-text]');if(label){event.preventDefault();event.stopPropagation();beginAbilityTagLabelEdit(label,'tag');}});box.addEventListener('dragstart',event=>{const pill=event.target.closest('.removable[data-tag]');if(!pill)return;event.dataTransfer.setData('text/plain',pill.dataset.tag);event.dataTransfer.effectAllowed='move';});box.addEventListener('dragover',event=>{const group=event.target.closest('.tag-lv[data-category]');if(!group)return;event.preventDefault();group.classList.add('tag-drop-target');});box.addEventListener('dragleave',event=>{const group=event.target.closest('.tag-lv[data-category]');if(group&&!group.contains(event.relatedTarget))group.classList.remove('tag-drop-target');});box.addEventListener('drop',event=>{const group=event.target.closest('.tag-lv[data-category]');if(!group)return;event.preventDefault();group.classList.remove('tag-drop-target');const tag=event.dataTransfer.getData('text/plain');if(!abilityTags.includes(tag))return;abilityTagCategories[tag]=group.dataset.category;saveAbilityTagsLS();renderSettings();toast(`已将「${tag}」移至「${group.dataset.category}」`);});}
 function renderSettings(){
   const groups={}; abilityTags.forEach(t=>{const lv=levelOf(t);(groups[lv]=groups[lv]||[]).push(t);});
-  abilityTagCustomCategories.forEach(c=>{groups[c]=groups[c]||[];});
-  const fixedOrder=Array.from(new Set(Object.values(TAG_LEVELS))).filter(c=>groups[c]);
-  const categoryOrder=[...fixedOrder,...abilityTagCustomCategories.filter(c=>groups[c]),...Object.keys(groups).filter(c=>!fixedOrder.includes(c)&&!abilityTagCustomCategories.includes(c))];
-  let html=''; categoryOrder.forEach(lv=>{ html+=`<div class="tag-lv" data-category="${esc(lv)}"><h4><span data-category-label title="双击修改分类名称">${esc(lv)}</span></h4><div class="type-row">`+
-    (groups[lv].length?groups[lv].map(t=>`<span class="removable" draggable="true" data-tag="${esc(t)}" title="拖动到其他分类；双击文字可编辑"><span class="tag-text" data-tag-text>${esc(t)}</span><span class="x" onclick="event.stopPropagation();removeTag(${abilityTags.indexOf(t)})">✕</span></span>`).join(''):'<span class="ph">暂无标签，可将标签拖到此处</span>')+`</div></div>`; });
+  let html=''; Object.keys(groups).sort().forEach(lv=>{ html+=`<div class="tag-lv"><h4>${lv}</h4><div class="type-row">`+
+    groups[lv].map(t=>`<span class="removable">${esc(t)}<span class="x" onclick="removeTag(${abilityTags.indexOf(t)})">✕</span></span>`).join('')+`</div></div>`; });
   $('tagMgr').innerHTML=html;
-  updateAbilityTagCategorySelect();bindAbilityTagDnD();
   renderResumeMgr();
   renderProfileForm();
   // AI 面试官配置
@@ -4715,17 +4696,7 @@ async function testVisionCfg(){
     toast('视觉连接测试成功');
   }catch(e){ $('visionStatus').textContent='❌ 视觉测试失败：'+e.message; toast('视觉连接测试失败'); }
 }
-function toggleNewAbilityTagCategory(){const select=$('newTagCategory'),input=$('newTagCategoryName');if(!select||!input)return;input.hidden=select.value!=='__new__';if(!input.hidden)input.focus();}
-function renameAbilityTagCategory(oldName,newName){const next=newName===undefined?prompt('修改分类名称：',oldName):newName;if(next===null)return;const name=String(next).trim();if(!name){toast('分类名称不能为空');return;}if(name===oldName)return;const fixedBases=Object.values(TAG_LEVELS).includes(oldName)?Array.from(new Set(abilityTags.filter(tag=>levelOf(tag)===oldName&&BASE_TAG_LEVELS[tag]).map(tag=>BASE_TAG_LEVELS[tag]))):[];abilityTags.forEach(tag=>{if(levelOf(tag)===oldName)abilityTagCategories[tag]=name;});fixedBases.forEach(base=>{abilityTagCategoryRenames[base]=name;Object.entries(BASE_TAG_LEVELS).forEach(([tag,tagBase])=>{if(tagBase===base)TAG_LEVELS[tag]=name;});});const idx=abilityTagCustomCategories.indexOf(oldName);if(idx>=0)abilityTagCustomCategories.splice(idx,1);if(fixedBases.length){const nameIdx=abilityTagCustomCategories.indexOf(name);if(nameIdx>=0)abilityTagCustomCategories.splice(nameIdx,1);}else if(!Object.values(TAG_LEVELS).includes(name)&&!abilityTagCustomCategories.includes(name))abilityTagCustomCategories.push(name);saveAbilityTagsLS();renderSettings();toast('分类名称已修改');}
-function beginAbilityTagLabelEdit(label,kind){if(!label||label.dataset.editing)return;const oldName=kind==='category'?label.closest('.tag-lv').dataset.category:label.closest('.removable').dataset.tag;const input=document.createElement('input');input.className='tag-inline-edit';input.value=oldName;input.setAttribute('aria-label',kind==='category'?'编辑分类名称':'编辑能力标签');input.dataset.editing='1';label.replaceWith(input);input.focus();input.select();let done=false;const cancel=()=>{if(done)return;done=true;renderSettings();};input.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();cancel();}if(event.key==='Enter'&&!event.isComposing){event.preventDefault();const value=input.value.trim();if(!value){toast(kind==='category'?'分类名称不能为空':'标签不能为空');input.focus();return;}if(kind==='category')renameAbilityTagCategory(oldName,value);else renameAbilityTag(oldName,value);done=true;}});input.addEventListener('blur',cancel);}
-function renameAbilityTag(oldName,newName){const name=String(newName||'').trim();if(!name){toast('标签不能为空');return;}if(name===oldName)return;if(abilityTags.includes(name)){toast('该标签已存在');renderSettings();return;}const index=abilityTags.indexOf(oldName);if(index<0)return;const category=levelOf(oldName);abilityTags[index]=name;if(abilityTagCategories[oldName])delete abilityTagCategories[oldName];abilityTagCategories[name]=category;saveAbilityTagsLS();renderSettings();toast('标签名称已修改');}
-function addTag(){
-  const input=$('newTag'),select=$('newTagCategory'),nameInput=$('newTagCategoryName'),v=input.value.trim();let category=select.value;
-  if(category==='__new__'){category=nameInput.value.trim();if(!category){toast('请填写新增分类名称');nameInput.focus();return;}if(!abilityTagCustomCategories.includes(category))abilityTagCustomCategories.push(category);}
-  if(!v){if(select.value!=='__new__'){toast('请输入标签');input.focus();return;}saveAbilityTagsLS();renderSettings();$('newTagCategory').value=category;toggleNewAbilityTagCategory();toast('分类已新增，可继续添加标签');return;}
-  if(abilityTags.includes(v)){toast('已存在');input.select();return;}
-  abilityTags.push(v);abilityTagCategories[v]=category||'自定义';input.value='';if(nameInput)nameInput.value='';saveAbilityTagsLS();renderSettings();if(abilityTagCategoryOptions().includes(category))$('newTagCategory').value=category;toggleNewAbilityTagCategory();toast('已添加标签');
-}
+function addTag(){ const v=$('newTag').value.trim(); if(!v){ toast('请输入标签'); return; } if(abilityTags.includes(v)){ toast('已存在'); return; } abilityTags.push(v); $('newTag').value=''; saveAbilityTagsLS(); renderSettings(); toast('已添加标签'); }
 function removeTag(i){ abilityTags.splice(i,1); saveAbilityTagsLS(); renderSettings(); }
 /* ============ 数据导出（按需独立下载，支持 CSV / Excel） ============ */
 function libData(key){
@@ -4854,7 +4825,7 @@ function exportAllXlsx(){
   toast('已导出全量备份（'+sheets.length+' 个 Sheet，共 '+total+' 行）');
 }
 /* --- 跨设备数据迁移：导出/导入 localStorage 全部内容（gzip 压缩 + 双向智能合并） --- */
-const MIGRATION_KEYS=['ajhc_jobs','ajhc_star','ajhc_brain','ajhc_review','ajhc_review_history','ajhc_review_reports','ajhc_ai','ajhc_cheat_v2','ajhc_cheat_presets','ajhc_profile','ajhc_resume_state','ajhc_tags','ajhc_tag_categories','ajhc_tag_category_names','ajhc_tag_category_renames','ajhc_mock_log','ajhc_version'];
+const MIGRATION_KEYS=['ajhc_jobs','ajhc_star','ajhc_brain','ajhc_review','ajhc_review_history','ajhc_review_reports','ajhc_ai','ajhc_cheat_v2','ajhc_cheat_presets','ajhc_profile','ajhc_resume_state','ajhc_tags','ajhc_mock_log','ajhc_version'];
 
 /* ---- 压缩/解压辅助 ---- */
 function base64EncodeUnicode(str){ try{ return btoa(unescape(encodeURIComponent(str))); }catch(e){ return null; } }
@@ -4902,8 +4873,7 @@ function mergeStorageValue(key, localStr, importedStr){
   if(local==null) return importedStr;
   if(imported==null) return localStr;
   // 简单数组：标签库
-  if(key==='ajhc_tags' || key==='ajhc_tag_category_names') return JSON.stringify(unionArr(local, imported));
-  if(key==='ajhc_tag_categories' || key==='ajhc_tag_category_renames') return JSON.stringify(mergeObject(local, imported));
+  if(key==='ajhc_tags') return JSON.stringify(unionArr(local, imported));
   // 单值/配置：导入优先
   if(key==='ajhc_version' || key==='ajhc_ai') return importedStr;
   // 对象：导入字段优先，本地独有字段保留
@@ -5260,7 +5230,7 @@ const SKILLS_POOL=['HRIS','HCM','HR系统','人力资源数字化','薪酬','绩
 const INDUSTRIES_POOL=['跨境电商','零售','制造','互联网','金融','医疗','教育','物流','汽车','快消','地产','游戏'];
 const ROLES_POOL=['HR','人力资源','HRBP','HR数字化','数据分析','数字化','BP','PM','项目经理','招聘','薪酬','绩效'];
 /* 基础档案（全局唯一）：姓名 / 入行年份（自动算年限）/ 学历 / 专业 / 行业 */
-let profile = {name:'', careerStartYear:'', education:'不限', major:'', industries:[]};
+let profile = {name:'', title:'', email:'', phone:'', location:'', summary:'', links:[]};
 /* 经历版本（多份）：技能 / 目标岗位（各版本可不同）+ 工作经验 / 项目经历 / 亮点 / 概述 / 原始文本 */
 let resumes=[], resumeSeq=0, defaultResumeId=0, editingId=null, resumeLoaded=false;
 function seedResumes(){
@@ -6451,10 +6421,8 @@ function renderHistoryComparison(d){
   if(!c) return `<div class="card" style="margin-top:12px;background:#f8fafc;"><h3>📈 历史面试表现与进步趋势</h3><div class="ph">${d.comparisonError?'历史对比暂未生成：'+esc(d.comparisonError):'尚无可用的历史真实回答；完成下一次面试复盘后即可自动比较。旧记录若只保存评分，也需有原始回答才能做逐题对比。'}</div></div>`;
   if(!c.historyCount) return `<div class="card" style="margin-top:12px;"><h3>📈 历史面试表现与进步趋势</h3><div class="ph">旧版报告仅依据复盘摘要生成对比，没有真实回答的逐题证据。</div><div class="overall">${esc(c.summary||'—')}</div></div>`;
   const items=(name,values)=>`<div class="card"><h3>${name}</h3><ul class="rv-list">${(values||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li class="ph">暂无充分证据</li>'}</ul></div>`;
-  const usedHistory=(c.historyItems||[]).map((h,i)=>`<li>历史${i+1}：${esc(h.date||'日期未记录')} · ${esc(h.role||'岗位未记录')}${h.company?' @ '+esc(h.company):' · 公司未记录'} · ${esc(h.relation||'历史岗位')}</li>`).join('');
   return `<div class="card" style="margin-top:12px;"><h3>📈 历史面试表现与进步趋势</h3>
     <div class="ph">${esc(c.scope||'历史面试')} · 对比 ${Number(c.historyCount)||1} 份有真实回答的历史记录</div>
-    ${usedHistory?`<details class="rv-history-used" open><summary>本次引用的历史岗位与公司</summary><ul>${usedHistory}</ul></details>`:''}
     <div class="overall">${esc(c.summary||'')}</div><div class="grid g2" style="margin-top:10px;">${items('✅ 观察到的进步',c.improved)}${items('🔁 重复出现的问题',c.stillWeak)}</div>
     <div class="card" style="margin-top:12px;"><h3>🗣 真实回答对比证据</h3>${(c.evidence||[]).map(x=>`<div class="qa"><b>${esc(x.topic||'对比题目')}</b><div class="ans-body">过去：${esc(x.past||'—')}</div><div class="ans-body">本次：${esc(x.current||'—')}</div><div class="ph">${esc(x.observation||'')}</div></div>`).join('')||'<div class="ph">暂无可直接比较的同类问题</div>'}</div>
     <div style="margin-top:12px;">${items('🎯 下次重点',c.focusNext)}</div></div>`;
@@ -7037,12 +7005,12 @@ function reviewRoleFamily(role){
 }
 function selectComparableReviews(role,jobId){
   const reports=(savedReviewReports||[]).filter(x=>x.report).map(x=>({
-    id:x.recordId||x.id,date:x.date||'',role:x.role||'',company:x.company||'',jobId:x.jobId,
+    id:x.recordId||x.id,date:x.date||'',role:x.role||'',jobId:x.jobId,
     questions:x.report.questions||[],overallScore:x.report.totalScore
   }));
   const byId=new Map();
-  (reviewHistory||[]).forEach(x=>{const job=jobs.find(j=>String(j.id)===String(x.jobId));byId.set(String(x.id),{...x,role:x.role||(job&&job.role)||'',company:x.company||(job&&job.company)||''});});
-  reports.forEach(x=>{const old=byId.get(String(x.id)),job=jobs.find(j=>String(j.id)===String(x.jobId));const enriched={...x,role:x.role||(old&&old.role)||(job&&job.role)||'',company:x.company||(old&&old.company)||(job&&job.company)||''};if(!old||!(old.questions||[]).some(q=>q.a))byId.set(String(x.id),enriched);else byId.set(String(x.id),{...old,role:old.role||enriched.role,company:old.company||enriched.company});});
+  (reviewHistory||[]).forEach(x=>byId.set(String(x.id),x));
+  reports.forEach(x=>{const old=byId.get(String(x.id)); if(!old||!(old.questions||[]).some(q=>q.a)) byId.set(String(x.id),x);});
   const candidates=[...byId.values()].filter(x=>(x.questions||[]).some(q=>String(q.a||q.answer||'').trim()));
   const current=reviewRoleFamily(role);
   const ranked=candidates.map(x=>{
@@ -7055,14 +7023,14 @@ function selectComparableReviews(role,jobId){
 }
 async function aiCompareHistory(history,cur,job){
   const scope=history.some(x=>x.rank>0)?'优先对比同岗位/相近岗位':'暂无同类岗位，按最近的岗位对比';
-  const lines=history.map((h,i)=>`历史${i+1}：${h.date||'日期未记录'} · ${h.role||'岗位未记录'}${h.company?' @ '+h.company:' · 公司未记录'} · ${h.relation} · 综合分${h.overallScore??'未记录'}\n${(h.questions||[]).filter(q=>q.a||q.answer).slice(0,6).map(q=>`问：${String(q.q||'').slice(0,120)}；真实回答：${String(q.a||q.answer).slice(0,650)}；问题：${String(q.weakness||'').slice(0,140)}`).join('\n')}`).join('\n\n');
+  const lines=history.map((h,i)=>`历史${i+1}：${h.date||'日期未记录'} · ${h.role||'岗位未记录'} · ${h.relation} · 综合分${h.overallScore??'未记录'}\n${(h.questions||[]).filter(q=>q.a||q.answer).slice(0,6).map(q=>`问：${String(q.q||'').slice(0,120)}；真实回答：${String(q.a||q.answer).slice(0,650)}；问题：${String(q.weakness||'').slice(0,140)}`).join('\n')}`).join('\n\n');
   const current=(cur.questions||[]).filter(q=>q.a).slice(0,8).map(q=>`问：${String(q.q||'').slice(0,120)}；真实回答：${String(q.a).slice(0,650)}；问题：${String(q.weakness||'').slice(0,140)}`).join('\n');
   const prompt=`你是面试表现跟踪教练。基于候选人回答原话，对比当前与以下${history.length}份历史面试。岗位相近时优先找同类问题；岗位不同要说明可比性局限。严禁使用参考/标准答案冒充本人回答，也不能仅凭综合分推断进步。\n范围：${scope}\n【历史真实回答】\n${lines}\n【本次 ${job?job.role:'岗位未记录'} 的真实回答】\n${current}\n只返回严格 JSON：{"summary":"总体变化与证据限制","improved":["具体进步及过去与本次回答依据"],"stillWeak":["多次出现的相同问题及回答依据"],"focusNext":["下次具体练习动作"],"evidence":[{"topic":"可比问题/能力","past":"历史原话短摘","current":"本次原话短摘","observation":"变化或重复问题；仅能推测则说明"}]}。若没有同类问答可直接比较，evidence 返回空数组，说明证据不足。`;
   const content=await aiCall([{role:'user',content:prompt}],{max_tokens:2600,temperature:0.2,timeout:120000});
   let t=String(content||'').trim(); const m=t.match(/```(?:json)?\s*([\s\S]*?)```/i); if(m) t=m[1];
   const parsed=JSON.parse(t); if(!parsed||typeof parsed!=='object') throw Error('AI 返回格式不正确');
   const list=v=>Array.isArray(v)?v.map(String).slice(0,5):[];
-  return {scope,historyCount:history.length,historyItems:history.map(h=>({date:h.date||'',role:h.role||'',company:h.company||'',relation:h.relation||'',overallScore:h.overallScore??null})),summary:String(parsed.summary||''),improved:list(parsed.improved),stillWeak:list(parsed.stillWeak),focusNext:list(parsed.focusNext),evidence:Array.isArray(parsed.evidence)?parsed.evidence.slice(0,5).map(x=>({topic:String(x.topic||''),past:String(x.past||''),current:String(x.current||''),observation:String(x.observation||'')})):[]};
+  return {scope,historyCount:history.length,summary:String(parsed.summary||''),improved:list(parsed.improved),stillWeak:list(parsed.stillWeak),focusNext:list(parsed.focusNext),evidence:Array.isArray(parsed.evidence)?parsed.evidence.slice(0,5).map(x=>({topic:String(x.topic||''),past:String(x.past||''),current:String(x.current||''),observation:String(x.observation||'')})):[]};
 }
 /* 录音：浏览器实时语音识别（Web Speech API），仅 Chrome/Edge 支持，需授权麦克风；不支持时请用文字稿 */
 let _rec=null, _recFinal='', _recActive=false;
