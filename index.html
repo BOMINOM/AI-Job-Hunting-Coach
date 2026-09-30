@@ -1176,7 +1176,7 @@
           <div class="ph">面试反馈打标累计形成能力图谱。</div>
         </div>
                 <div class="card sync-card" style="grid-column:1/-1;order:1;"><h3>☁️ 多端同步（手机/电脑，GitHub Gist）</h3>
-          <div class="ph">基于 GitHub Gist + 个人访问令牌（Token）。数据存放在<strong>私有 Gist</strong> 的独立记录文件中；首次会迁移旧备份 <code>ajhc_data_backup.json</code>，之后只上传新增、修改或删除的记录；demo 版与纯净版<strong>各自独立</strong>（不同 Token、互不串数据），本机数据改动会每 <strong>1 小时</strong> 自动上传一次；不到 1 小时急着同步，可点下方「立即上传」手动触发合并。Token 仅存你本机浏览器，<strong>不会</strong>进入备份文件。</div>
+          <div class="ph">基于 GitHub Gist + 个人访问令牌（Token）。数据存放在一个<strong>私有 Gist</strong> 文件 <code>ajhc_data_backup.json</code>；demo 版与纯净版<strong>各自独立</strong>（不同 Token、互不串数据），本机数据改动会每 <strong>1 小时</strong> 自动上传一次；不到 1 小时急着同步，可点下方「立即上传」手动触发合并。Token 仅存你本机浏览器，<strong>不会</strong>进入备份文件。</div>
 
           <details style="margin-top:10px;border:1px solid #e5e7eb;border-radius:10px;padding:10px;">
             <summary style="cursor:pointer;font-weight:600;color:#4f46e5;list-style:none;">📖 查看设置方法（点击展开）</summary>
@@ -5000,239 +5000,184 @@ function restoreJsonBackup(){
   setTimeout(()=>{ location.reload(); }, 600);
 }
 
-/* ================= 多端增量同步（GitHub Gist 记录文件，纯原生 fetch） =================
- * 旧版 ajhc_data_backup.json 继续作为迁移来源；新版本每条带 id 的记录独立保存为 Gist 文件。
- * 同步时先比较本机上次同步基线，只 PATCH 新增、修改或删除的记录文件，不再重传整包。
- * 纯文本应用数据按结构拆分；Token 与同步基线仅保存在本机。
+/* ================= 多端同步（GitHub Gist，纯原生 fetch，无第三方 SDK） =================
+ * 设计要点：
+ * - 用 GitHub Personal Access Token 认证，数据存放在一个私有 Gist 文件 ajhc_data_backup.json。
+ * - 首次使用自动查找同名 Gist（按文件名），没有则新建一个私有 Gist。
+ * - 写冲突用 mergeStorageValue 双向按 id 合并不丢数据；本机任意 ajhc_* 改动后 1.5s 自动上传。
+ * - demo 版与纯净版各自独立（不同 Token → 不同备份）；Token 仅存本机，不入备份文件。
  */
-let __gistPushTimer=null, __gistBusy=false, __gistSynced=false, __gistRateLimitedUntil=0, __lastAutoPushTime=0;
-function gistStatus(msg, ok){ const el=document.getElementById('gistStatus'); if(el){ el.textContent=msg||''; el.style.color=ok===true?'#059669':(ok===false?'#dc2626':'#6b7280'); } }
+
+let __gistPushTimer=null, __gistBusy=false, __gistSynced=false, __gistRateLimitedUntil=0, __lastPushedData=null, __lastAutoPushTime=0;
+
+function gistStatus(msg, ok){
+  const el=document.getElementById('gistStatus');
+  if(el){ el.textContent=msg||''; el.style.color = ok===true?'#059669':(ok===false?'#dc2626':'#6b7280'); }
+}
+
 const GIST_CFG_KEY='ajhc_'+AJHC_NS+'_gist_cfg';
 const GIST_FILENAME='ajhc_data_backup.json';
-const GIST_RECORD_PREFIX='ajhc_'+AJHC_NS+'_record_';
-const GIST_STATE_KEY='ajhc_'+AJHC_NS+'_gist_record_state';
-const GIST_MAX_FILES=290;
+
 function loadGistCfg(){ try{ return JSON.parse(localStorage.getItem(GIST_CFG_KEY)||'{}'); }catch(e){ return {}; } }
 function saveGistCfg(cfg){ try{ localStorage.setItem(GIST_CFG_KEY, JSON.stringify(cfg)); }catch(e){} }
-function gistLoadState(){ try{ return JSON.parse(localStorage.getItem(GIST_STATE_KEY)||'{"hashes":{}}')||{hashes:{}}; }catch(e){ return {hashes:{}}; } }
-function gistSaveState(s){ try{ localStorage.setItem(GIST_STATE_KEY,JSON.stringify(s)); }catch(e){ throw new Error('本机无法保存同步基线，请清理浏览器存储空间后重试'); } }
+
 async function gistApiFetch(path, options={}){
-  const cfg=loadGistCfg(); if(!cfg.token) throw new Error('未配置 GitHub Token');
-  const res=await fetch('https://api.github.com'+path,{...options,headers:{'Authorization':'bearer '+cfg.token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json',...(options.headers||{})}});
-  if(!res.ok){ let err={}; try{err=await res.json();}catch(_){} throw new Error(err.message||('HTTP '+res.status)); }
+  const cfg=loadGistCfg();
+  if(!cfg.token) throw new Error('未配置 GitHub Token');
+  const res=await fetch('https://api.github.com'+path, {
+    ...options,
+    headers:{ 'Authorization':'bearer '+cfg.token, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json', ...(options.headers||{}) }
+  });
+  if(!res.ok){
+    let err={}; try{ err=await res.json(); }catch(_){}
+    throw new Error(err.message||('HTTP '+res.status));
+  }
   return res.json();
 }
+
 async function getOrCreateGistId(){
-  const cfg=loadGistCfg(); if(cfg.gistId) return cfg.gistId;
-  const candidates=[];
-  for(let page=1;;page++){
-    const gists=await gistApiFetch('/gists?per_page=100&page='+page);
-    if(!Array.isArray(gists))throw new Error('GitHub 返回的备份列表格式异常');
-    gists.forEach(g=>{const f=g.files||{};const recordNames=Object.keys(f).filter(n=>/^ajhc_(demo|prod)_record_/.test(n));
-      if(recordNames.some(n=>n.startsWith(GIST_RECORD_PREFIX)) || (!recordNames.length&&f[GIST_FILENAME])) candidates.push(g);
-    });
-    if(gists.length<100)break;
-    if(page>=20)throw new Error('Gist 列表过多，无法安全确定备份，请在本机原有同步配置下重试');
-  }
-  if(candidates.length>1)throw new Error('发现多个可用备份，无法确定应使用哪一份；请保留原有浏览器的 Gist 配置，避免连接错误备份');
-  if(candidates.length){cfg.gistId=candidates[0].id;saveGistCfg(cfg);return cfg.gistId;}
-  const newGist=await gistApiFetch('/gists',{method:'POST',body:JSON.stringify({description:'AI Job Hunting Coach Data Sync ('+AJHC_NS+')',public:false,files:{[GIST_FILENAME]:{content:JSON.stringify({schema:2,mode:'record-sync',namespace:AJHC_NS,createdAt:new Date().toISOString()})}}})});
-  cfg.gistId=newGist.id;saveGistCfg(cfg);return newGist.id;
-}
-function gistHash(s){ let a=2166136261,b=0x9e3779b9; for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=Math.imul(a^c,16777619);b=Math.imul(b^c,2246822519);}return (a>>>0).toString(36)+(b>>>0).toString(36); }
-function gistRecordFileName(rid){ return GIST_RECORD_PREFIX+gistHash(rid)+'.json'; }
-function gistIsIdArray(v){ return Array.isArray(v)&&v.length>0&&v.every(x=>x&&typeof x==='object'&&!Array.isArray(x)&&x.id!=null)&&new Set(v.map(x=>String(x.id))).size===v.length; }
-function gistSnapshot(data){
-  const out={};
-  function walk(key,v,path,records){
-    if(gistIsIdArray(v)){
-      v.forEach((item,index)=>{const rid=key+'|item|'+path+'|'+String(item.id);records[rid]={schema:2,key,rid,path,id:String(item.id),order:index,deleted:false,value:item};});
-      return {__ajhcRecordArray:path};
-    }
-    if(v&&typeof v==='object'&&!Array.isArray(v)){const o={};Object.keys(v).forEach(k=>{o[k]=walk(key,v[k],path+'/'+k.replace(/~/g,'~0').replace(/\//g,'~1'),records);});return o;}
-    return v;
-  }
-  MIGRATION_KEYS.forEach(key=>{
-    if(!(key in data)) return;
-    let parsed; try{parsed=JSON.parse(data[key]);}catch(_){parsed=data[key];}
-    const records={}; const skeleton=walk(key,parsed,'',records); const rid=key+'|root';
-    records[rid]={schema:2,key,rid,path:'',id:'',order:0,deleted:false,value:skeleton};
-    Object.assign(out,records);
+  const cfg=loadGistCfg();
+  if(cfg.gistId) return cfg.gistId;
+  const gists=await gistApiFetch('/gists');
+  const target=gists.find(g=>g.files && g.files[GIST_FILENAME]);
+  if(target){ cfg.gistId=target.id; saveGistCfg(cfg); return target.id; }
+  const initialData=readMigrationData();
+  const newGist=await gistApiFetch('/gists', {
+    method:'POST',
+    body:JSON.stringify({ description:'AI Job Hunting Coach Data Sync', public:false, files:{ [GIST_FILENAME]:{ content:JSON.stringify(initialData,null,2) } } })
   });
-  return out;
+  cfg.gistId=newGist.id; saveGistCfg(cfg);
+  __lastPushedData=JSON.stringify(initialData,null,2);
+  return newGist.id;
 }
-function gistHydrateSnapshot(records){
-  const data={};
-  function hydrate(key,v){
-    if(v&&typeof v==='object'&&!Array.isArray(v)){
-      if(typeof v.__ajhcRecordArray==='string'){
-        const path=v.__ajhcRecordArray;
-        return Object.values(records).filter(r=>r&&r.key===key&&r.path===path&&!r.deleted&&r.rid.indexOf(key+'|item|'+path+'|')===0).sort((a,b)=>(a.order||0)-(b.order||0)).map(r=>hydrate(key,r.value));
-      }
-      const o={};Object.keys(v).forEach(k=>{o[k]=hydrate(key,v[k]);});return o;
-    }
-    return v;
-  }
-  MIGRATION_KEYS.forEach(key=>{const root=records[key+'|root'];if(root&&!root.deleted)data[key]=JSON.stringify(hydrate(key,root.value));});
-  return data;
-}
-function gistCanonical(v){
-  if(Array.isArray(v))return '['+v.map(gistCanonical).join(',')+']';
-  if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+gistCanonical(v[k])).join(',')+'}';
-  return JSON.stringify(v);
-}
-function gistMergeFirstRoot(local,remote){
-  if(local&&remote&&typeof local==='object'&&typeof remote==='object'&&!Array.isArray(local)&&!Array.isArray(remote)){
-    if(typeof local.__ajhcRecordArray==='string'||typeof remote.__ajhcRecordArray==='string')return remote.__ajhcRecordArray?remote:local;
-    const out={...local};Object.keys(remote).forEach(k=>{out[k]=gistMergeFirstRoot(local[k],remote[k]);});
-    if(typeof local.seq==='number'&&typeof remote.seq==='number')out.seq=Math.max(local.seq,remote.seq);
-    return out;
-  }
-  if(local&&typeof local.__ajhcRecordArray==='string'&&Array.isArray(remote)&&remote.length===0)return local;
-  return remote;
-}
-function gistHashRecord(r){ if(r==null||r.deleted)return '__deleted__';const x={...r};delete x.updatedAt;return gistHash(gistCanonical(x)); }
-function gistSameData(a,b){if(a===b)return true;if(a==null||b==null)return false;try{return gistCanonical(JSON.parse(a))===gistCanonical(JSON.parse(b));}catch(_){return false;}}
-async function gistReadFullFile(file){
-  if(!file) return null; if(file.content&&!file.truncated)return file.content;
-  if(!file.raw_url)throw new Error('Gist 文件内容被截断，且没有可读取的原文地址');
-  const res=await fetch(file.raw_url,{cache:'no-store'});if(!res.ok)throw new Error('读取 Gist 完整文件失败（HTTP '+res.status+'）');return res.text();
-}
-async function gistReadRemote(gist){
-  const files=gist.files||{}; const names=Object.keys(files); const out={};
-  const recordNames=names.filter(n=>n.indexOf(GIST_RECORD_PREFIX)===0);
-  if(gist.truncated||names.length>=GIST_MAX_FILES)throw new Error('Gist 记录数已接近 GitHub 返回上限，已停止同步以免漏数据；请迁移到真正的数据库后继续扩容。');
-  for(const name of recordNames){
-    const raw=await gistReadFullFile(files[name]);let rec;try{rec=JSON.parse(raw);}catch(_){throw new Error('记录文件无法解析：'+name);}
-    if(!rec||rec.schema!==2||typeof rec.rid!=='string'||!MIGRATION_KEYS.includes(rec.key)||!rec.rid.startsWith(rec.key+'|'))throw new Error('记录文件格式异常：'+name);
-    if(gistRecordFileName(rec.rid)!==name)throw new Error('发现重复或冲突的记录文件：'+name);
-    out[rec.rid]=rec;
-  }
-  return out;
-}
-async function gistPatchRecordUpdates(gistId,updates){
-  const entries=Object.entries(updates);let batch={},batchBytes=0;
-  const flush=async()=>{if(!Object.keys(batch).length)return;await gistApiFetch('/gists/'+gistId,{method:'PATCH',body:JSON.stringify({files:batch})});batch={};batchBytes=0;};
-  for(const [name,file] of entries){
-    const bytes=new TextEncoder().encode(JSON.stringify({files:{[name]:file}})).length;
-    if(bytes>800000)throw new Error('单条文本记录超过安全上传大小（约 800 KB），请先缩短该条内容。');
-    if(Object.keys(batch).length>=20||batchBytes+bytes>800000)await flush();
-    batch[name]=file;batchBytes+=bytes;
-  }
-  await flush();
-}
-// 先完成云端写入，再提交本机数据和基线；失败可重试，不提前标记成功。
-function gistCommitLocal(finalData,initial,hashes,gistId){
-  const writes=[];
-  MIGRATION_KEYS.forEach(k=>{
-    const before=Object.prototype.hasOwnProperty.call(initial,k)?initial[k]:null;
-    const current=localStorage.getItem(k);
-    // 网络请求期间的新编辑留在本机，下次同步上传。
-    if(current!==before)return;
-    const next=Object.prototype.hasOwnProperty.call(finalData,k)?finalData[k]:null;
-    if(!gistSameData(current,next))writes.push({k,old:current,next});
-  });
-  const priorState=localStorage.getItem(GIST_STATE_KEY);const applied=[];
-  try{
-    for(const w of writes){if(w.next===null)localStorage.removeItem(w.k);else localStorage.setItem(w.k,w.next);applied.push(w);}
-    gistSaveState({schema:2,gistId,namespace:AJHC_NS,hashes,updatedAt:new Date().toISOString()});
-  }catch(e){
-    for(const w of applied.reverse()){try{if(w.old===null)localStorage.removeItem(w.k);else localStorage.setItem(w.k,w.old);}catch(_){} }
-    try{if(priorState===null)localStorage.removeItem(GIST_STATE_KEY);else localStorage.setItem(GIST_STATE_KEY,priorState);}catch(_){}
-    throw new Error('云端写入已完成，但本机保存失败；请检查浏览器存储空间并重试。');
-  }
-  return writes.length;
-}
-async function gistRunRecordSync(){
-  const initial=readMigrationData();
-  const gistId=await getOrCreateGistId();const gist=await gistApiFetch('/gists/'+gistId);
-  const remote=await gistReadRemote(gist);let needsLegacyRetire=false;const working={...initial};
-  const legacy=gist.files&&gist.files[GIST_FILENAME];
-  if(legacy){
-    let oldData;try{oldData=JSON.parse(await gistReadFullFile(legacy));}catch(e){throw new Error('读取旧版备份失败：'+e.message);}
-    if(oldData&&oldData.schema===2){
-      if(oldData.namespace!==AJHC_NS)throw new Error('该备份属于另一版本，已停止同步以免混入示例数据');
-      needsLegacyRetire=oldData.mode!=='records-v2-complete';
-    }else{
-      if(!oldData||typeof oldData!=='object'||Array.isArray(oldData))throw new Error('旧版备份格式异常');
-      MIGRATION_KEYS.forEach(k=>{if(typeof oldData[k]==='string')working[k]=k in working?mergeStorageValue(k,working[k],oldData[k]):oldData[k];});
-      needsLegacyRetire=true;
-    }
-  }
-  const local=gistSnapshot(working);const state=gistLoadState();
-  const base=state.schema===2&&state.gistId===gistId&&state.namespace===AJHC_NS?(state.hashes||{}):{};
-  const merged={};const updates={};const now=new Date().toISOString();
-  const deleted=(rid,R)=>({schema:2,key:R?R.key:rid.split('|')[0],rid,path:R?R.path:'',id:R?R.id:'',order:0,deleted:true,value:null,updatedAt:now});
-  const ids=new Set([...Object.keys(local),...Object.keys(remote),...Object.keys(base)]);
-  for(const rid of ids){
-    const L=local[rid]||null,R=remote[rid]||null;const hasBase=Object.prototype.hasOwnProperty.call(base,rid);
-    const lh=gistHashRecord(L),rh=gistHashRecord(R);let chosen;
-    if(!hasBase){
-      // 新设备同 id 使用云端版本，防止旧本机记录或示例数据覆盖云端。
-      chosen=R||(L?{...L,updatedAt:now}:null);
-      if(L&&R&&!R.deleted&&rid===R.key+'|root'){const value=gistMergeFirstRoot(L.value,R.value);chosen={...R,value};if(gistHashRecord(chosen)!==rh)chosen.updatedAt=now;}
-    }else{
-      const lc=lh!==base[rid],rc=rh!==base[rid];
-      if(lc){chosen=lh===rh?R:(L?{...L,updatedAt:now}:deleted(rid,R));}
-      else if(rc)chosen=R;
-      else chosen=R||L;
-    }
-    if(chosen){merged[rid]=chosen;if(gistHashRecord(chosen)!==rh||!R)updates[gistRecordFileName(rid)]={content:JSON.stringify(chosen)};}
-  }
-  const active={};Object.keys(merged).forEach(id=>{if(!merged[id].deleted)active[id]=merged[id];});
-  const finalData=gistHydrateSnapshot(active);const updateCount=Object.keys(updates).length;
-  const currentFiles=gist.files||{};const resulting=Object.keys(currentFiles).length+Object.keys(updates).filter(n=>!currentFiles[n]).length;
-  if(resulting>=GIST_MAX_FILES)throw new Error('Gist 记录文件将达到安全上限（'+GIST_MAX_FILES+'），已停止同步；请改用数据库继续扩容。');
-  // 全部检查后再开始上传，避免大记录导致半途停止。
-  for(const [name,file] of Object.entries(updates)){if(new TextEncoder().encode(JSON.stringify({files:{[name]:file}})).length>800000)throw new Error('单条文本记录超过约 800 KB，请先缩短该条内容。');}
-  if(updateCount)await gistPatchRecordUpdates(gistId,updates);
-  if(needsLegacyRetire){
-    await gistApiFetch('/gists/'+gistId,{method:'PATCH',body:JSON.stringify({files:{[GIST_FILENAME]:{content:JSON.stringify({schema:2,mode:'records-v2-complete',namespace:AJHC_NS,recordCount:Object.keys(active).length,migratedAt:now})}}})});
-  }
-  const hashes={};Object.keys(merged).forEach(id=>{hashes[id]=gistHashRecord(merged[id]);});
-  const changed=gistCommitLocal(finalData,initial,hashes,gistId);
-  __gistSynced=true;__lastAutoPushTime=Date.now();
-  return {changed,uploaded:updateCount,records:Object.keys(active).length};
-}
-function gistRefreshMergedData(){
-  // 防止 beforeunload 将旧锦囊或旧 AI 设置覆盖刚合并的本机记录。
-  window.__aiSettingsRendered=false;
-  const cheat=localStorage.getItem('ajhc_cheat_v2');
-  if(cheat!==null){try{sessionStorage.setItem('ajhc_cheat_v2',cheat);}catch(_){}try{loadCheatLS();}catch(_){} }
-  else{try{sessionStorage.removeItem('ajhc_cheat_v2');}catch(_){}cheatByJob={};cheatMetaByJob={};cheatDeletedByJob={};cheatSeq=1;}
-  const ai=localStorage.getItem('ajhc_ai');try{if(ai===null)sessionStorage.removeItem('ajhc_ai');else sessionStorage.setItem('ajhc_ai',ai);}catch(_){}
-  try{sessionStorage.setItem('__cloudNeedRender','1');}catch(_){}location.reload();
-}
-async function gistSyncAction(push){
-  if(__gistBusy){gistStatus('正在同步，请等待完成后再操作。');return false;}
+
+async function gistPull(){
   __gistBusy=true;
   try{
-    const r=await gistRunRecordSync();
-    gistStatus(r.uploaded?'已增量同步 '+r.uploaded+' 条记录（当前共 '+r.records+' 条） '+new Date().toLocaleTimeString():(r.changed?'已拉取并合并最新数据。':'没有新增、修改或删除的记录，当前数据已同步。'),true);
-    if(r.changed)gistRefreshMergedData();return true;
+    const gistId=await getOrCreateGistId();
+    const gist=await gistApiFetch('/gists/'+gistId);
+    const fileObj=gist.files && gist.files[GIST_FILENAME];
+    if(!fileObj || !fileObj.content){ gistStatus('Gist 暂无内容（本机操作后点「立即上传」）', true); __gistSynced=true; return false; }
+    const remoteData=JSON.parse(fileObj.content);
+    __lastPushedData=fileObj.content; // 拉取后避免立即无意义回推相同内容
+    let count=0;
+    MIGRATION_KEYS.forEach(k=>{
+      if(!(k in remoteData)) return;
+      const local=localStorage.getItem(k);
+      const merged = local===null ? remoteData[k] : mergeStorageValue(k, local, remoteData[k]);
+      if(merged !== local){
+        try{ localStorage.setItem(k, merged); count++; }catch(e){}
+      }
+    });
+    __gistSynced=true;
+    gistStatus('已从 Gist 拉取并合并 '+count+' 项数据', true);
+    if(count>0){
+      // 合并结果已写入 localStorage；刷新前先把内存态刷新成合并后的值，
+      // 否则 beforeunload 会把内存里的旧 cheatByJob/aiCfg 重新存回 localStorage，
+      // 从而覆盖掉 Gist 独有（本机从未创建过）的岗位锦囊 / AI 配置。
+      try{ loadCheatLS(); }catch(e){}
+      try{ loadAiCfg(); }catch(e){}
+      sessionStorage.setItem('__cloudNeedRender','1'); location.reload();
+    }
+    return true;
   }catch(e){
-    const msg=e&&e.message?e.message:String(e);
-    if(/rate limit|abuse/i.test(msg)){__gistRateLimitedUntil=Date.now()+60000;gistStatus('同步失败：GitHub API 频率限制，自动同步已暂停 1 分钟。',false);}
-    else gistStatus('同步失败：'+msg,false);
+    gistStatus('拉取失败：'+(e&&e.message?e.message:e), false);
     return false;
-  }finally{__gistBusy=false;gistSetUI();}
+  }finally{ __gistBusy=false; }
 }
-async function gistPull(){return gistSyncAction(false);}
-async function gistPush(){return gistSyncAction(true);}
-function startHourlyAutoPush(){if(__gistPushTimer)clearInterval(__gistPushTimer);__gistPushTimer=setInterval(()=>{const cfg=loadGistCfg();if(!(cfg&&cfg.connected&&cfg.token)||!__gistSynced||__gistBusy||Date.now()<__gistRateLimitedUntil||Date.now()-__lastAutoPushTime<3600000)return;gistPush();},60000);}
-function gistSetUI(){const cfg=loadGistCfg();const tokEl=document.getElementById('gistToken');if(tokEl)tokEl.value=cfg.token||'';const btn=document.getElementById('gistConnectBtn');if(btn)btn.textContent=__gistSynced?'✅ 已连接':'💾 连接并同步';}
+
+async function gistPush(){
+  __gistBusy=true;
+  try{
+    const gistId=await getOrCreateGistId();
+    const localData=readMigrationData();
+    const content=JSON.stringify(localData,null,2);
+    if(content===__lastPushedData){
+      __gistSynced=true;
+      gistStatus('没有新的修改需要上传，当前数据已同步。', true);
+      return true;
+    } // 数据未变，避免无意义请求触发限流
+    await gistApiFetch('/gists/'+gistId, {
+      method:'PATCH',
+      body:JSON.stringify({ files:{ [GIST_FILENAME]:{ content:content } } })
+    });
+    __lastPushedData=content;
+    __lastAutoPushTime=Date.now();
+    __gistSynced=true;
+    gistStatus('已同步到 Gist（'+MIGRATION_KEYS.length+' 项） '+new Date().toLocaleTimeString(), true);
+    return true;
+  }catch(e){
+    const msg=(e&&e.message?e.message:String(e));
+    if(/rate limit/i.test(msg) || /abuse/i.test(msg)){
+      __gistRateLimitedUntil=Date.now()+60000;
+      gistStatus('上传失败：GitHub API 频率限制，自动同步已暂停 1 分钟，请稍后再试。', false);
+    }else{
+      gistStatus('上传失败：'+msg, false);
+    }
+    return false;
+  }finally{ __gistBusy=false; }
+}
+
+/* 每小时自动上传一次（自「上次任意上传」起算，手动上传同样重置计时）。
+   仅此与「手动上传」两种情形触发上传；数据改动不再主动上传。 */
+function startHourlyAutoPush(){
+  if(__gistPushTimer) clearInterval(__gistPushTimer);
+  __gistPushTimer=setInterval(()=>{
+    const cfg=loadGistCfg();
+    if(!(cfg && cfg.connected && cfg.token)) return;
+    if(!__gistSynced || __gistBusy) return;
+    if(Date.now()<__gistRateLimitedUntil) return;       // 限流暂停期内不传
+    if(Date.now()-__lastAutoPushTime < 3600000) return;  // 不足 1 小时不传
+    gistPush();
+  }, 60000);
+}
+
+/* 注：数据改动不再自动触发云端上传。仅两种情形会上传：
+   1) 距上次上传已满 1 小时（由 startHourlyAutoPush 定时检查，手动上传也重置计时）；
+   2) 手动点击「立即上传」。相关逻辑见上方 startHourlyAutoPush 与 gistManualPush。 */
+
+function gistSetUI(){
+  const cfg=loadGistCfg();
+  const tokEl=document.getElementById('gistToken');
+  if(tokEl) tokEl.value=cfg.token||'';
+  const btn=document.getElementById('gistConnectBtn');
+  if(btn) btn.textContent = __gistSynced ? '✅ 已连接' : '💾 连接并同步';
+}
+
 function gistConnect(){
-  if(__gistBusy){gistStatus('正在同步，请等待完成后再连接。');return;}
-  const tokEl=document.getElementById('gistToken');const tok=(tokEl?tokEl.value:'').trim();
-  if(!tok){gistStatus('请先填写 GitHub Token',false);return;}
-  const cfg=loadGistCfg();if(cfg.token!==tok){delete cfg.gistId;__gistSynced=false;}
-  cfg.token=tok;cfg.connected=true;saveGistCfg(cfg);startHourlyAutoPush();
-  gistStatus('正在检查旧备份并增量同步…');gistPull().then(()=>gistSetUI());
+  const tokEl=document.getElementById('gistToken');
+  const tok=(tokEl?tokEl.value:'').trim();
+  if(!tok){ gistStatus('请先填写 GitHub Token', false); return; }
+  const cfg=loadGistCfg(); cfg.token=tok; cfg.connected=true; saveGistCfg(cfg);
+  gistStatus('已保存 Token，正在同步…');
+  gistPull().then(()=>{ __gistSynced=true; gistSetUI(); });
 }
-function gistManualPush(){gistPush();}
-function gistManualPull(){gistPull().then(()=>gistSetUI());}
-function gistDisconnect(){if(__gistBusy){gistStatus('正在同步，请等待完成后再断开。');return;}const cfg=loadGistCfg();cfg.connected=false;saveGistCfg(cfg);__gistSynced=false;__gistRateLimitedUntil=0;if(__gistPushTimer)clearInterval(__gistPushTimer);gistStatus('已断开 Gist 同步（Token 仍保留本机）',null);gistSetUI();}
-(function initGistSync(){const run=()=>{const cfg=loadGistCfg();if(cfg&&cfg.connected&&cfg.token){if(sessionStorage.getItem('__cloudNeedRender')){sessionStorage.removeItem('__cloudNeedRender');__gistSynced=true;}else gistPull().finally(()=>gistSetUI());}startHourlyAutoPush();gistSetUI();};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();})();
+
+function gistManualPush(){ gistPush(); }
+function gistManualPull(){ gistPull().then(()=>gistSetUI()); }
+function gistDisconnect(){
+  const cfg=loadGistCfg(); cfg.connected=false; saveGistCfg(cfg);
+  __gistSynced=false; __gistRateLimitedUntil=0; if(__gistPushTimer) clearInterval(__gistPushTimer);
+  gistStatus('已断开 Gist 同步（Token 仍保留本机）', null); gistSetUI();
+}
+
+/* 启动自动连接：若已配置 Token 则自动拉取（仅首次会话拉取，避免刷新循环） */
+(function initGistSync(){
+  const run=()=>{
+    const cfg=loadGistCfg();
+    if(cfg && cfg.connected && cfg.token){
+      if(sessionStorage.getItem('__cloudNeedRender')){
+        sessionStorage.removeItem('__cloudNeedRender'); __gistSynced=true;
+      } else {
+        gistPull().then(()=>{ __gistSynced=true; }).catch(()=>{}).finally(()=>gistSetUI());
+      }
+    }
+    startHourlyAutoPush();
+    gistSetUI();
+  };
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', run); }
+  else { run(); }
+})();
 
 /* Enter 快捷新增 */
 (function(){
