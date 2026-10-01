@@ -5220,7 +5220,12 @@ async function syncBind(){
   let root;
   if(cfg.gistId && cfg.account===user.id){
     try{const g=await gistApiFetch('/gists/'+cfg.gistId);if(g.owner?.id!==user.id)throw Error('备份所属账户不匹配');const data=await syncReadFile(g,GIST_FILENAME);syncValidateBase(data);root={g,data};}
-    catch(e){if(e.status!==404)throw e;throw Error('已绑定备份不可访问。为避免创建重复备份，暂不自动新建');}
+    catch(e){
+      if(e.status!==404)throw e;
+      // A deleted binding must not prevent discovery/recreation. Keep the local
+      // journal until discovery or the initial full snapshot has succeeded.
+      cfg.missingGist=cfg.gistId;delete cfg.gistId;saveGistCfg(cfg);
+    }
   }
   if(!root){
     const all=await syncListGists(),candidates=all.filter(g=>g.files?.[GIST_FILENAME] && g.description?.startsWith('AJHC2I12|base|'+AJHC_NS+'|'));
@@ -5241,7 +5246,7 @@ async function syncBind(){
   const {g,data}=root;
   if(epoch!==__syncEpoch)throw Error('同步已断开');
   if(__sync.dataset!==data.dataset){
-    if(__sync.dataset && __sync.pending.length)throw Error('当前备份仍有待同步变化，不能切换到另一份备份');
+    if(__sync.dataset && __sync.pending.length && !cfg.missingGist && cfg.proposedDataset!==data.dataset)throw Error('当前备份仍有待同步变化，不能切换到另一份备份');
     await syncWaitForEditing();
     if(epoch!==__syncEpoch)throw Error('同步已断开');
     const ownCreation=cfg.proposedDataset===data.dataset;
@@ -5256,7 +5261,7 @@ async function syncBind(){
     syncMaterialize();
   }
   __sync.account=user.id;__sync.dataset=data.dataset;syncSave();
-  cfg.account=user.id;cfg.gistId=g.id;cfg.dataset=data.dataset;cfg.connected=true;delete cfg.proposedDataset;saveGistCfg(cfg);
+  cfg.account=user.id;cfg.gistId=g.id;cfg.dataset=data.dataset;cfg.connected=true;delete cfg.proposedDataset;delete cfg.missingGist;saveGistCfg(cfg);
   return g.id;
 }
 function syncMergeEvents(target,events){
