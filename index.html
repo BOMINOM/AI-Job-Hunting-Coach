@@ -4976,7 +4976,10 @@ function restoreJsonBackup(text){
     }
     if(!Object.keys(data).length)throw Error('没有当前版本的业务数据');
     ajhcLocal.setItem(SYNC_STATE_KEY+'_recovery',JSON.stringify({at:new Date().toISOString(),view:__sync.view}));gistDisconnect();
-    syncQueue(syncDiff(__sync.view,{...__sync.view,...data}));syncMaterialize();
+    const target={...__sync.view,...data};
+    // Import is an explicit choice of the file's values, even if already displayed.
+    const resolved=Object.values(__sync.conflicts).filter(c=>Object.hasOwn(data,c.path[0])).map(c=>c.id);
+    syncQueue(syncDiff(__sync.view,target),resolved);syncMaterialize();
     document.getElementById('jsonRestoreHint').textContent='已恢复到本机。云端同步已暂停，检查数据后可点击“连接并同步”。';toast('已恢复到本机');
   }catch(e){document.getElementById('jsonRestoreHint').textContent='恢复未完成：'+e.message;}
 }
@@ -4987,7 +4990,7 @@ function syncValidateBusiness(k,v){
   if(k==='ajhc_cheat_v2'&&(!v.byJob||Array.isArray(v.byJob)||typeof v.byJob!=='object'))throw Error('锦囊记录格式不正确');
 }
 
-/* AJHC sync v2: immutable event batches; no writes to legacy Gists. */
+/* AJHC sync: one mutable backup file, event union with revision recovery. */
 const GIST_FILENAME='ajhc_data_backup2.json';
 const GIST_CFG_KEY='ajhc_'+AJHC_NS+'_gist_cfg_index12_v2';
 const SYNC_STATE_KEY='ajhc_'+AJHC_NS+'_sync_index12_v2';
@@ -5102,6 +5105,12 @@ function syncReplay(base,events){
       conflicts[ev.id+':'+i]={id:ev.id+':'+i,path,current:shown,incoming,event:ev.id};
     });
     (ev.resolves||[]).forEach(id=>delete conflicts[id]);
+  }
+  // Later edits can make an earlier rejected change identical to the final value.
+  for(const [id,c] of Object.entries(conflicts)){
+    const current=syncValue(doc,c.path);
+    if(syncEqual(current,c.incoming))delete conflicts[id];
+    else c.current=current;
   }
   return {view:doc,conflicts};
 }
@@ -5220,7 +5229,7 @@ async function syncBind(){
       // Store the proposed identity before POST, so a lost response can be discovered on retry.
       const dataset=cfg.proposedDataset||syncUuid();cfg.proposedDataset=dataset;saveGistCfg(cfg);
       const captured=new Set(Object.keys(__sync.events));
-      const data={app:'AJHC2',kind:'base',namespace:AJHC_NS,dataset,createdAt:new Date().toISOString(),base:syncClone(__sync.view)};
+      const data={app:'AJHC2',kind:'base',namespace:AJHC_NS,dataset,format:3,events:{},createdAt:new Date().toISOString(),base:syncClone(__sync.view)};
       const content=JSON.stringify(data);if(new TextEncoder().encode(content).length>8*1024*1024)throw Error('初始备份超过 8 MB，请先导出并整理数据');
       const g=await gistApiFetch('/gists',{method:'POST',body:JSON.stringify({description:syncDescription('base',dataset),public:false,files:{[GIST_FILENAME]:{content}}})});root={g,data};
       // This snapshot includes all local events at creation; no need to upload them again.
@@ -5236,51 +5245,80 @@ async function syncBind(){
     await syncWaitForEditing();
     if(epoch!==__syncEpoch)throw Error('同步已断开');
     const ownCreation=cfg.proposedDataset===data.dataset;
+    const remote=await syncReadRemote(g.id,data.dataset,user.id);
+    await syncWaitForEditing();if(epoch!==__syncEpoch)throw Error('同步已断开');
     const local=ownCreation?syncClone(__sync.view):Object.fromEntries(Object.entries(syncClone(__sync.view)).filter(([key])=>(__sync.joinKeys||[]).includes(key)));
-    __sync.base=syncClone(data.base);__sync.events={};__sync.pending=[];__sync.inflight=null;__sync.seen={};__sync.view=syncClone(data.base);__sync.conflicts={};
+    const latest=syncReplay(data.base,remote.received);
+    __sync.base=syncClone(data.base);__sync.events=remote.received;__sync.pending=[];__sync.inflight=null;__sync.seen=remote.seen;__sync.view=latest.view;__sync.conflicts=latest.conflicts;
     __sync.dataset=data.dataset;__sync.account=user.id;syncSave();
     // Joining must never interpret missing local records as remote deletions.
-    syncQueue(syncDiff(data.base,local,[],[],!ownCreation));
+    syncQueue(syncDiff(latest.view,local,[],[],!ownCreation));
     syncMaterialize();
   }
   __sync.account=user.id;__sync.dataset=data.dataset;syncSave();
   cfg.account=user.id;cfg.gistId=g.id;cfg.dataset=data.dataset;cfg.connected=true;delete cfg.proposedDataset;saveGistCfg(cfg);
   return g.id;
 }
-async function syncReceive(){
-  const list=await syncListGists(),prefix=syncDescription('events',__sync.dataset,'');
-  const received={},seen={};
+function syncMergeEvents(target,events){
+  for(const event of Object.values(events||{})){
+    syncValidateEvent(event);
+    if(target[event.id]&&!syncEqual(target[event.id],event))throw Error('事件编号冲突');
+    target[event.id]=event;
+  }
+}
+async function syncReadRemote(rootId,dataset,account){
+  const gist=await gistApiFetch('/gists/'+rootId),data=await syncReadFile(gist,GIST_FILENAME);
+  syncValidateBase(data);
+  if(gist.owner?.id!==account||data.dataset!==dataset)throw Error('云端备份身份不匹配');
+  const received={},seen={};syncMergeEvents(received,data.events);
+  // Gist PATCH has no documented atomic compare-and-swap. Recover concurrent
+  // overwritten events from immutable revisions before acknowledging or merging.
+  for(let page=1;;page++){
+    const commits=await gistApiFetch('/gists/'+rootId+'/commits?per_page=100&page='+page);
+    if(!Array.isArray(commits))throw Error('备份历史格式不正确');
+    for(const commit of commits){
+      const revision=await gistApiFetch('/gists/'+rootId+'/'+encodeURIComponent(commit.version));
+      const old=await syncReadFile(revision,GIST_FILENAME);syncValidateBase(old);
+      if(old.dataset!==dataset||!syncEqual(old.base,data.base))throw Error('备份历史不匹配');
+      syncMergeEvents(received,old.events);
+    }
+    if(commits.length<100)break;
+  }
+  const list=await syncListGists(),prefix=syncDescription('events',dataset,'');
   for(const item of list){
-    if(!item.description?.startsWith(prefix) || __sync.seen[item.id])continue;
-    if(item.owner?.id!==__sync.account)continue;
+    if(!item.description?.startsWith(prefix))continue;
+    if(item.owner?.id!==account)continue;
     const name='ajhc_events_'+item.description.slice(prefix.length)+'.json';
     const gist=await gistApiFetch('/gists/'+item.id),batch=await syncReadFile(gist,name);
-    if(batch.app!=='AJHC2'||batch.kind!=='events'||batch.dataset!==__sync.dataset||batch.namespace!==AJHC_NS||!Array.isArray(batch.events))throw Error('增量备份格式不正确');
-    for(const event of batch.events){syncValidateEvent(event);const known=__sync.events[event.id]||received[event.id];if(known && !syncEqual(known,event))throw Error('事件编号冲突');received[event.id]=event;}
+    if(batch.app!=='AJHC2'||batch.kind!=='events'||batch.dataset!==dataset||batch.namespace!==AJHC_NS||!Array.isArray(batch.events))throw Error('增量备份格式不正确');
+    syncMergeEvents(received,batch.events);
     seen[item.id]=true;
   }
-  return {list,received,seen};
+  return {data,received,seen};
 }
-async function syncSend(list){
-  if(!__sync.pending.length && !__sync.inflight)return;
-  while(__sync.pending.length || __sync.inflight){
-    if(!__sync.inflight){
-      const ids=[];let size=0;for(const id of __sync.pending){const n=new TextEncoder().encode(JSON.stringify(__sync.events[id])).length;if(ids.length && size+n>700000)break;ids.push(id);size+=n;}
-      __sync.inflight={id:syncUuid(),ids};syncSave();
-    }
-    const flight=__sync.inflight,description=syncDescription('events',__sync.dataset,flight.id);
-    let gist=list.find(g=>g.description===description);
-    if(gist){
-      // A timed-out POST may already have succeeded; verify it before acknowledging.
-      const data=await syncReadFile(await gistApiFetch('/gists/'+gist.id),'ajhc_events_'+flight.id+'.json');
-      if(!syncEqual(data.events,flight.ids.map(id=>__sync.events[id])))throw Error('重试批次内容不匹配');
-    }else{
-      const batch={app:'AJHC2',kind:'events',namespace:AJHC_NS,dataset:__sync.dataset,id:flight.id,events:flight.ids.map(id=>__sync.events[id])};
-      const content=JSON.stringify(batch);if(new TextEncoder().encode(content).length>8*1024*1024)throw Error('单次变化超过 8 MB，请先导出并整理数据');
-      gist=await gistApiFetch('/gists',{method:'POST',body:JSON.stringify({description,public:false,files:{['ajhc_events_'+flight.id+'.json']:{content}}})});
-    }
-    __sync.seen[gist.id]=true;__sync.pending=__sync.pending.filter(id=>!flight.ids.includes(id));__sync.inflight=null;syncSave();
+async function syncReceive(){
+  return syncReadRemote(loadGistCfg().gistId,__sync.dataset,__sync.account);
+}
+async function syncSend(){
+ for(let attempt=0;attempt<3;attempt++){
+  const remote=await syncReceive(),events={};
+  syncMergeEvents(events,remote.received);syncMergeEvents(events,__sync.events);
+  const captured=Object.keys(events),ids=__sync.pending.slice();
+  // First upgrade folds existing event Gists into the original file; never deletes them.
+  if(remote.data.format!==3||!syncEqual(remote.data.events||{},events)){
+    const data={...remote.data,format:3,events,updatedAt:new Date().toISOString()};
+    const content=JSON.stringify(data);
+    if(new TextEncoder().encode(content).length>8*1024*1024)throw Error('备份超过 8 MB，请先导出并整理数据');
+    await gistApiFetch('/gists/'+loadGistCfg().gistId,{method:'PATCH',body:JSON.stringify({files:{[GIST_FILENAME]:{content}}})});
   }
+  const verified=await syncReceive();
+  if(captured.some(id=>!verified.received[id]||!syncEqual(verified.received[id],events[id])))throw Error('云端写入尚未确认，将保留本机变化重试');
+  syncMergeEvents(__sync.events,verified.received);
+  if(!syncEqual(verified.data.events||{},verified.received))continue;
+  __sync.pending=__sync.pending.filter(id=>!ids.includes(id));__sync.inflight=null;syncSave();
+  return;
+ }
+ throw Error('其他设备正在同时更新，已保留变化，请稍后重试');
 }
 function syncSchedule(delay=1500){
   clearTimeout(__syncTimer);const c=loadGistCfg();if(!__syncReady || !c.connected || !__sync.pending.length)return;
@@ -5296,7 +5334,7 @@ async function syncRun(push,connect=false){
   clearTimeout(__syncTimer);gistStatus('正在同步…');
   try{
     ajhcLocal.setItem(SYNC_STATE_KEY+'_recovery',JSON.stringify({at:new Date().toISOString(),view:__sync.view}));
-    await syncBind();const received=await syncReceive();if(push)await syncSend(received.list);
+    await syncBind();const received=await syncReceive();if(push){do{await syncSend();}while(__sync.pending.length);}
     await syncWaitForEditing();
     if(epoch!==__syncEpoch)return;
     Object.assign(__sync.events,received.received);Object.assign(__sync.seen,received.seen);
@@ -5373,7 +5411,7 @@ async function syncInit(){
     }else throw Error('当前浏览器不支持安全的多标签页锁，请使用新版 Chrome、Edge 或 Safari');
     const raw=ajhcLocal.getItem(SYNC_STATE_KEY);
     ajhcLocal.unlock(!raw);
-    if(raw){__sync=JSON.parse(raw);if(__sync.version!==2 || __sync.namespace!==AJHC_NS)throw Error('本机同步记录版本不匹配');syncMaterialize();}
+    if(raw){__sync=JSON.parse(raw);if(__sync.version!==2 || __sync.namespace!==AJHC_NS)throw Error('本机同步记录版本不匹配');const replay=syncReplay(__sync.base,__sync.events);__sync.view=replay.view;__sync.conflicts=replay.conflicts;syncSave();syncMaterialize();}
     else{
       syncFlushMemory();const view=syncReadData();
       __sync={version:2,namespace:AJHC_NS,device:syncUuid(),base:syncClone(view),view,events:{},pending:[],seen:{},conflicts:{},dataset:null,account:null,inflight:null,joinKeys:syncPreexistingKeys};syncSave();
